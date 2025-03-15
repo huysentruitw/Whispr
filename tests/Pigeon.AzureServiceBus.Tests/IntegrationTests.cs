@@ -1,4 +1,5 @@
 using Pigeon.AzureServiceBus.Tests.Conventions;
+using Pigeon.AzureServiceBus.Tests.Handlers;
 using Pigeon.AzureServiceBus.Tests.Messages;
 
 namespace Pigeon.AzureServiceBus.Tests;
@@ -6,7 +7,7 @@ namespace Pigeon.AzureServiceBus.Tests;
 public sealed class IntegrationTests
 {
     [Fact]
-    public async Task Test()
+    public async Task Given_MessageHandlerRegistered_When_MessagePublished_Then_MessageHandled()
     {
         // Arrange
         await using var harness = await TestHarness.Create();
@@ -16,18 +17,21 @@ public sealed class IntegrationTests
         await harness.MessageBus.Publish(message, TestContext.Current.CancellationToken);
 
         // Assert
-        // await Task.Delay(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
+        var handledMessage = ChirpHandler.WaitForMessage<ChirpHeard>(m => m.BirdName == "Robin", TimeSpan.FromSeconds(30));
+        Assert.NotNull(handledMessage);
     }
 
     private sealed class TestHarness : IAsyncDisposable
     {
+        private readonly ServiceProvider _serviceProvider;
+
         private TestHarness(ServiceProvider serviceProvider, IMessageBus messageBus)
         {
-            ServiceProvider = serviceProvider;
+            _serviceProvider = serviceProvider;
             MessageBus = messageBus;
         }
 
-        public ValueTask DisposeAsync() => ServiceProvider.DisposeAsync();
+        public ValueTask DisposeAsync() => _serviceProvider.DisposeAsync();
 
         public static async ValueTask<TestHarness> Create()
         {
@@ -56,7 +60,7 @@ public sealed class IntegrationTests
             return new TestHarness(services, messageBus);
         }
 
-        public ServiceProvider ServiceProvider { get; }
+        public IServiceProvider Services => _serviceProvider;
 
         public IMessageBus MessageBus { get; }
     }

@@ -6,12 +6,12 @@ internal sealed class NestHandler
     : IMessageHandler<NestBuilt>
     , IMessageHandler<NestAbandoned>
 {
-    public ValueTask Handle(NestBuilt message, CancellationToken cancellationToken)
+    public ValueTask Handle(Envelope<NestBuilt> envelope, CancellationToken cancellationToken)
     {
         throw new NotImplementedException();
     }
 
-    public ValueTask Handle(NestAbandoned message, CancellationToken cancellationToken)
+    public ValueTask Handle(Envelope<NestAbandoned> envelope, CancellationToken cancellationToken)
     {
         throw new NotImplementedException();
     }

@@ -8,22 +8,21 @@ public static class PigeonBuilderExtensions
 
     public static PigeonBuilder AddMessageHandlersFromAssembly(this PigeonBuilder builder, Assembly assembly)
     {
-        var handlers = assembly.GetTypes()
+        var handlerTypes = assembly.GetTypes()
             .Where(IsMessageHandler)
             .ToArray();
 
-        foreach (var handler in handlers)
+        foreach (var handlerType in handlerTypes)
         {
-            var interfaces = handler.GetInterfaces()
+            var interfaces = handlerType.GetInterfaces()
                 .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IMessageHandler<>))
                 .ToArray();
 
-            foreach (var @interface in interfaces)
-                builder.Services.AddScoped(@interface, handler);
+            builder.Services.AddScoped(handlerType);
 
             builder.MessageHandlerDescriptors.Add(new MessageHandlerDescriptor
             {
-                HandlerType = handler,
+                HandlerType = handlerType,
                 MessageTypes = interfaces.Select(i => i.GetGenericArguments().First()).ToArray(),
             });
         }

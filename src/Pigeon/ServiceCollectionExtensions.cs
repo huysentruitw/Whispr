@@ -6,7 +6,8 @@ public static class ServiceCollectionExtensions
     {
         services
             .AddSingleton<IMessageBus, MessageBus>()
-            .AddScoped<MessagePublisher>();
+            .AddScoped<MessagePublisher>()
+            .AddScoped(typeof(MessageProcessor<,>));
 
         return new PigeonBuilder(services);
     }

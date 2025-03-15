@@ -1,12 +1,8 @@
-﻿using System.Collections.Concurrent;
-
-namespace Pigeon.AzureServiceBus;
+﻿namespace Pigeon.AzureServiceBus;
 
 // TODO Check how we need to configure the service-bus entities
 internal sealed class EntityManager(ServiceBusAdministrationClient administrationClient)
 {
-    private readonly ConcurrentDictionary<string, object> _entitySyncRoots = new();
-
     public async Task CreateQueueIfNotExists(string queueName, CancellationToken cancellationToken = default)
     {
         if (!await administrationClient.QueueExistsAsync(queueName, cancellationToken))

@@ -1,7 +1,7 @@
 ﻿namespace Pigeon;
 
-public interface IMessageHandler<in TMessage>
+public interface IMessageHandler<TMessage>
     where TMessage : class
 {
-    ValueTask Handle(TMessage message, CancellationToken cancellationToken);
+    ValueTask Handle(Envelope<TMessage> envelope, CancellationToken cancellationToken);
 }
