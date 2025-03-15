@@ -11,14 +11,17 @@
     <WarningsAsErrors />
   </PropertyGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2"/>
-    <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.2"/>
+  <ItemGroup>
+    <PackageReference Include="Azure.Identity" Version="1.13.2"/>
+    <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.18.4" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.3"/>
-    <PackageReference Include="Microsoft.Extensions.Options" Version="9.0.3"/>
+  <ItemGroup>
+    <ProjectReference Include="../Pigeon/Pigeon.csproj" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <InternalsVisibleTo Include="Pigeon.AzureServiceBus.Tests" />
   </ItemGroup>
 
 </Project>

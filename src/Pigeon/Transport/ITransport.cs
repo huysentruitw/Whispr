@@ -2,5 +2,7 @@
 
 public interface ITransport
 {
-    Task Send(SerializedEnvelope envelope, CancellationToken cancellationToken = default);
+    ValueTask Send(SerializedEnvelope envelope, CancellationToken cancellationToken = default);
+
+    ValueTask StartListener(string queueName, string[] topicNames, CancellationToken cancellationToken = default);
 }

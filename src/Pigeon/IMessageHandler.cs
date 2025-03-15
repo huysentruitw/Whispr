@@ -3,5 +3,5 @@
 public interface IMessageHandler<in TMessage>
     where TMessage : class
 {
-    Task Handle(TMessage message, CancellationToken cancellationToken);
+    ValueTask Handle(TMessage message, CancellationToken cancellationToken);
 }

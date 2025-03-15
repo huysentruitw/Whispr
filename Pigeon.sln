@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pigeon.EntityFrameworkCore"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pigeon.Tests", "tests\Pigeon.Tests\Pigeon.Tests.csproj", "{65D0F32A-E6DA-45E3-AA15-266E137C9A9B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pigeon.AzureServiceBus.Tests", "tests\Pigeon.AzureServiceBus.Tests\Pigeon.AzureServiceBus.Tests.csproj", "{21C8719A-AA2D-4419-A6E3-53AB634E3C93}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -36,5 +38,9 @@ Global
 		{65D0F32A-E6DA-45E3-AA15-266E137C9A9B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{65D0F32A-E6DA-45E3-AA15-266E137C9A9B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{65D0F32A-E6DA-45E3-AA15-266E137C9A9B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{21C8719A-AA2D-4419-A6E3-53AB634E3C93}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{21C8719A-AA2D-4419-A6E3-53AB634E3C93}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{21C8719A-AA2D-4419-A6E3-53AB634E3C93}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{21C8719A-AA2D-4419-A6E3-53AB634E3C93}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

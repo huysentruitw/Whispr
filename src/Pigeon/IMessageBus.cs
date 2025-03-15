@@ -2,6 +2,8 @@
 
 public interface IMessageBus
 {
-    Task Publish<TMessage>(TMessage message, CancellationToken cancellationToken = default)
+    ValueTask Start(CancellationToken cancellationToken = default);
+
+    ValueTask Publish<TMessage>(TMessage message, CancellationToken cancellationToken = default)
         where TMessage : class;
 }

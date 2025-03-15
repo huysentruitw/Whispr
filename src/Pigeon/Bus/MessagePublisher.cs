@@ -1,22 +1,27 @@
-﻿using System.Text.Json;
-
-namespace Pigeon.Bus;
+﻿namespace Pigeon.Bus;
 
 internal sealed class MessagePublisher(
     IEnumerable<IPublishFilter> publishFilters,
     IEnumerable<ISendFilter> sendFilters,
+    ITopicNamingConvention topicNamingConvention,
     ITransport transport)
 {
-    public Task Publish<TMessage>(TMessage message, CancellationToken cancellationToken)
+    public ValueTask Publish<TMessage>(TMessage message, CancellationToken cancellationToken)
         where TMessage : class
     {
+        var messageType = message.GetType().FullName
+            ?? throw new InvalidOperationException("Message type must have a full name");
+
         var envelope = new Envelope<TMessage>
         {
             Message = message,
+            MessageType = messageType,
+            TopicName = topicNamingConvention.Format(typeof(TMessage)),
+            CorrelationId = Guid.NewGuid().ToString(),
         };
 
         // Build the publishing pipeline
-        Func<Envelope<TMessage>, CancellationToken, Task> first = Send;
+        Func<Envelope<TMessage>, CancellationToken, ValueTask> first = Send;
         foreach (var publishFilter in publishFilters.Reverse())
         {
             var next = first;
@@ -27,16 +32,19 @@ internal sealed class MessagePublisher(
         return first(envelope, cancellationToken);
     }
 
-    private Task Send<TMessage>(Envelope<TMessage> envelope, CancellationToken cancellationToken)
+    private ValueTask Send<TMessage>(Envelope<TMessage> envelope, CancellationToken cancellationToken)
         where TMessage : class
     {
         var serializedEnvelope = new SerializedEnvelope
         {
-            Message = JsonSerializer.Serialize(envelope.Message),
+            Body = JsonSerializer.Serialize(envelope),
+            MessageType = envelope.MessageType,
+            TopicName = envelope.TopicName,
+            CorrelationId = envelope.CorrelationId,
         };
 
         // Build the sending pipeline
-        Func<SerializedEnvelope, CancellationToken, Task> first = transport.Send;
+        Func<SerializedEnvelope, CancellationToken, ValueTask> first = transport.Send;
         foreach (var sendFilter in sendFilters.Reverse())
         {
             var next = first;
