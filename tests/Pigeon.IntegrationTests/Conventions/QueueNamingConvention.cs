@@ -1,6 +1,6 @@
 ﻿using Pigeon.Conventions;
 
-namespace Pigeon.AzureServiceBus.Tests.Conventions;
+namespace Pigeon.IntegrationTests.Tests.Conventions;
 
 public sealed class QueueNamingConvention : IQueueNamingConvention
 {

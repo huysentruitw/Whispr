@@ -1,7 +1,7 @@
 ﻿using System.Collections.Concurrent;
-using Pigeon.AzureServiceBus.Tests.Messages;
+using Pigeon.IntegrationTests.Tests.Messages;
 
-namespace Pigeon.AzureServiceBus.Tests.Handlers;
+namespace Pigeon.IntegrationTests.Tests.Handlers;
 
 internal sealed class ChirpHandler
     : IMessageHandler<ChirpHeard>

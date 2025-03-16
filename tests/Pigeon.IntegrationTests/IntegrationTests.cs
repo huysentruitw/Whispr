@@ -1,8 +1,10 @@
-using Pigeon.AzureServiceBus.Tests.Conventions;
-using Pigeon.AzureServiceBus.Tests.Handlers;
-using Pigeon.AzureServiceBus.Tests.Messages;
+using Pigeon.AzureServiceBus;
+using Pigeon.IntegrationTests.Tests.Conventions;
+using Pigeon.IntegrationTests.Tests.Filters;
+using Pigeon.IntegrationTests.Tests.Handlers;
+using Pigeon.IntegrationTests.Tests.Messages;
 
-namespace Pigeon.AzureServiceBus.Tests;
+namespace Pigeon.IntegrationTests.Tests;
 
 public sealed class IntegrationTests
 {

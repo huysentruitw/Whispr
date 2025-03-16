@@ -1,6 +1,6 @@
 ﻿using Pigeon.AzureServiceBus.Conventions;
 
-namespace Pigeon.AzureServiceBus.Tests.Conventions;
+namespace Pigeon.IntegrationTests.Tests.Conventions;
 
 public sealed class SubscriptionNamingConvention : ISubscriptionNamingConvention
 {

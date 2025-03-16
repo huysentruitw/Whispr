@@ -1,6 +1,6 @@
-﻿using Pigeon.AzureServiceBus.Tests.Messages;
+﻿using Pigeon.IntegrationTests.Tests.Messages;
 
-namespace Pigeon.AzureServiceBus.Tests.Handlers;
+namespace Pigeon.IntegrationTests.Tests.Handlers;
 
 internal sealed class NestHandler
     : IMessageHandler<NestBuilt>
