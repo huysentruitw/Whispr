@@ -15,4 +15,6 @@ public abstract record EnvelopeBase
     public required string TopicName { get; init; }
 
     public required string CorrelationId { get; init; }
+
+    public required DateTimeOffset? DeferredUntil { get; init; }
 }

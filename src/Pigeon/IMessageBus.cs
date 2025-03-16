@@ -4,6 +4,6 @@ public interface IMessageBus
 {
     ValueTask Start(CancellationToken cancellationToken = default);
 
-    ValueTask Publish<TMessage>(TMessage message, CancellationToken cancellationToken = default)
+    ValueTask Publish<TMessage>(TMessage message, DateTimeOffset? deferredUntil = null, CancellationToken cancellationToken = default)
         where TMessage : class;
 }

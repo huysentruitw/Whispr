@@ -10,12 +10,15 @@ internal sealed class MessageBus(
     public ValueTask Start(CancellationToken cancellationToken = default)
         => StartListeners(cancellationToken);
 
-    public async ValueTask Publish<TMessage>(TMessage message, CancellationToken cancellationToken = default)
+    public async ValueTask Publish<TMessage>(
+        TMessage message,
+        DateTimeOffset? deferredUntil = null,
+        CancellationToken cancellationToken = default)
         where TMessage : class
     {
         await using var scope = serviceProvider.CreateAsyncScope();
         var publisher = scope.ServiceProvider.GetRequiredService<MessagePublisher>();
-        await publisher.Publish(message, cancellationToken);
+        await publisher.Publish(message, deferredUntil, cancellationToken);
     }
 
     private async ValueTask StartListeners(CancellationToken cancellationToken = default)

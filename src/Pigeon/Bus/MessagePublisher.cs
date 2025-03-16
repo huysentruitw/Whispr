@@ -6,7 +6,7 @@ internal sealed class MessagePublisher(
     ITopicNamingConvention topicNamingConvention,
     ITransport transport)
 {
-    public ValueTask Publish<TMessage>(TMessage message, CancellationToken cancellationToken)
+    public ValueTask Publish<TMessage>(TMessage message, DateTimeOffset? deferredUntil, CancellationToken cancellationToken)
         where TMessage : class
     {
         var messageType = message.GetType().FullName
@@ -18,6 +18,7 @@ internal sealed class MessagePublisher(
             MessageType = messageType,
             TopicName = topicNamingConvention.Format(typeof(TMessage)),
             CorrelationId = Guid.NewGuid().ToString(),
+            DeferredUntil = deferredUntil,
         };
 
         // Build the publishing pipeline
@@ -41,6 +42,7 @@ internal sealed class MessagePublisher(
             MessageType = envelope.MessageType,
             TopicName = envelope.TopicName,
             CorrelationId = envelope.CorrelationId,
+            DeferredUntil = envelope.DeferredUntil,
         };
 
         // Build the sending pipeline

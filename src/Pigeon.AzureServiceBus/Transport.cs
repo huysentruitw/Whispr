@@ -20,6 +20,9 @@ internal sealed class Transport(
             CorrelationId = envelope.CorrelationId,
         };
 
+        if (envelope.DeferredUntil.HasValue)
+            message.ScheduledEnqueueTime = envelope.DeferredUntil.Value;
+
         try
         {
             await sender.SendMessageAsync(message, cancellationToken);
@@ -58,6 +61,7 @@ internal sealed class Transport(
                 MessageType = envelopeMetadata.MessageType,
                 TopicName = envelopeMetadata.TopicName,
                 CorrelationId = args.Message.CorrelationId,
+                DeferredUntil = envelopeMetadata.DeferredUntil,
             };
 
             try
