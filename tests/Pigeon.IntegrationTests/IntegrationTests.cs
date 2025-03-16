@@ -54,6 +54,8 @@ public sealed class IntegrationTests
                 .AddQueueNamingConvention<QueueNamingConvention>()
                 .AddSubscriptionNamingConvention<SubscriptionNamingConvention>()
                 .AddMessageHandlersFromAssembly(Assembly.GetExecutingAssembly())
+                .AddPublishFilter<FirstPublishFilter>()
+                .AddPublishFilter<SecondPublishFilter>()
                 .Services
                 .BuildServiceProvider();
 
