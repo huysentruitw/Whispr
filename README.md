@@ -89,8 +89,37 @@ services
         .AddSubscriptionNamingConvention<MySubscriptionNamingConvention>();
 ```
 
+## Filters
+
+Pipeline:
+
+```plaintext
++-----------------+   +----------------+   +-------------+   +-----------+   +----------------+   +-----------------+
+| Message Publish |-->| Publish Filter |-->| Send Filter |-->| Transport |-->| Consume Filter |-->| Message Handler |
++-----------------+   +----------------+   +-------------+   +-----------+   +----------------+   +-----------------+
+```
+
+Three types of filters can be applied to the messaging pipeline:
+
+- `IPublishFilter`: Filters that are applied when a message is published.
+- `ISendFilter`: Filters that are applied after the published message has been serialized but before it is sent.
+- `IConsumeFilter`: Filters that are applied before the message is handled by the message handler.
+
 ## Outbox
 
-The outbox pattern is implemented using EF Core. The outbox is used to ensure that messages are sent when related state has been stored, even if the application crashes or is restarted. The outbox is implemented using the `Pigeon.EntityFrameworkCore` package.
+The outbox pattern is implemented using EF Core. The outbox is a table in the database that stores messages that have been published. The outbox is used to prevent duplicate messages from being sent when a message is published multiple times.
 
-_TODO_
+Since the outbox is implemented as a `ISendFilter` to store published messages in the database, the outbox send filter must be added as the last send filter in the pipeline:
+
+```csharp
+
+The outbox is then polled periodically to send messages that have not been sent yet.
+
+The outbox can be configured using the `AddOutboxSendFilter` method:
+
+```csharp
+services
+    .AddPigeon()
+        .AddSendFilter<MySendFilter>()
+        .AddOutboxSendFilter();
+```
