@@ -119,5 +119,18 @@ public static class PigeonBuilderExtensions
         return builder;
     }
 
+    /// <summary>
+    /// Adds a send filter.
+    /// </summary>
+    /// <param name="builder">The <see cref="PigeonBuilder"/>.</param>
+    /// <typeparam name="TFilter">The type of the send filter.</typeparam>
+    /// <returns>The <see cref="PigeonBuilder"/>.</returns>
+    public static PigeonBuilder AddSendFilter<TFilter>(this PigeonBuilder builder)
+        where TFilter : class, ISendFilter
+    {
+        builder.Services.AddScoped<ISendFilter, TFilter>();
+        return builder;
+    }
+
     #endregion
 }

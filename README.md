@@ -94,9 +94,9 @@ services
 Pipeline:
 
 ```plaintext
-+-----------------+   +----------------+   +-----------+   +----------------+   +-----------------+
-| Message Publish |-->| Publish Filter |-->| Transport |-->| Consume Filter |-->| Message Handler |
-+-----------------+   +----------------+   +-----------+   +----------------+   +-----------------+
++-----------------+   +----------------+   +-------------+   +-----------+   +----------------+   +-----------------+
+| Message Publish |-->| Publish Filter |-->| Send Filter |-->| Transport |-->| Consume Filter |-->| Message Handler |
++-----------------+   +----------------+   +-------------+   +-----------+   +----------------+   +-----------------+
 ```
 
 Three types of filters can be applied to the messaging pipeline:

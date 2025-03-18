@@ -3,6 +3,7 @@
 /// <inheritdoc />
 internal sealed class MessagePublisher(
     IEnumerable<IPublishFilter> publishFilters,
+    IEnumerable<ISendFilter> sendFilters,
     ITopicNamingConvention topicNamingConvention,
     ITransport transport) : IMessagePublisher
 {
@@ -51,6 +52,15 @@ internal sealed class MessagePublisher(
             DeferredUntil = envelope.DeferredUntil,
         };
 
-        return transport.Send(envelope.DestinationTopicName, serializedEnvelope, cancellationToken);
+        // Build the sending pipeline
+        Func<string, SerializedEnvelope, CancellationToken, ValueTask> first = transport.Send;
+        foreach (var sendFilter in sendFilters.Reverse())
+        {
+            var next = first;
+            first = (topicName, se, ct) => sendFilter.Send(topicName, se, next, ct);
+        }
+
+        // Execute the sending pipeline
+        return first(envelope.DestinationTopicName, serializedEnvelope, cancellationToken);
     }
 }
