@@ -2,10 +2,19 @@
 
 namespace Pigeon;
 
+/// <summary>
+/// Provides extension methods for <see cref="PigeonBuilder"/>.
+/// </summary>
 public static class PigeonBuilderExtensions
 {
     #region MessageHandlers
 
+    /// <summary>
+    /// Adds message handlers from the specified assembly.
+    /// </summary>
+    /// <param name="builder">The <see cref="PigeonBuilder"/>.</param>
+    /// <param name="assembly">The assembly to add message handlers from.</param>
+    /// <returns>The <see cref="PigeonBuilder"/>.</returns>
     public static PigeonBuilder AddMessageHandlersFromAssembly(this PigeonBuilder builder, Assembly assembly)
     {
         var handlerTypes = assembly.GetTypes()
@@ -38,6 +47,12 @@ public static class PigeonBuilderExtensions
 
     #region Conventions
 
+    /// <summary>
+    /// Adds a topic naming convention.
+    /// </summary>
+    /// <param name="builder">The <see cref="PigeonBuilder"/>.</param>
+    /// <typeparam name="TNamingConvention">The type of the topic naming convention.</typeparam>
+    /// <returns>The <see cref="PigeonBuilder"/>.</returns>
     public static PigeonBuilder AddTopicNamingConvention<TNamingConvention>(this PigeonBuilder builder)
         where TNamingConvention : class, ITopicNamingConvention
     {
@@ -45,9 +60,20 @@ public static class PigeonBuilderExtensions
         return builder;
     }
 
+    /// <summary>
+    /// Adds the default topic naming convention.
+    /// </summary>
+    /// <param name="builder">The <see cref="PigeonBuilder"/>.</param>
+    /// <returns>The <see cref="PigeonBuilder"/>.</returns>
     public static PigeonBuilder AddDefaultTopicNamingConvention(this PigeonBuilder builder)
         => builder.AddTopicNamingConvention<DefaultTopicNamingConvention>();
 
+    /// <summary>
+    /// Adds a queue naming convention.
+    /// </summary>
+    /// <param name="builder">The <see cref="PigeonBuilder"/>.</param>
+    /// <typeparam name="TNamingConvention">The type of the queue naming convention.</typeparam>
+    /// <returns>The <see cref="PigeonBuilder"/>.</returns>
     public static PigeonBuilder AddQueueNamingConvention<TNamingConvention>(this PigeonBuilder builder)
         where TNamingConvention : class, IQueueNamingConvention
     {
@@ -55,6 +81,11 @@ public static class PigeonBuilderExtensions
         return builder;
     }
 
+    /// <summary>
+    /// Adds the default queue naming convention.
+    /// </summary>
+    /// <param name="builder">The <see cref="PigeonBuilder"/>.</param>
+    /// <returns>The <see cref="PigeonBuilder"/>.</returns>
     public static PigeonBuilder AddDefaultQueueNamingConvention(this PigeonBuilder builder)
         => builder.AddQueueNamingConvention<DefaultQueueNamingConvention>();
 
@@ -62,6 +93,12 @@ public static class PigeonBuilderExtensions
 
     #region Filtering
 
+    /// <summary>
+    /// Adds a publish filter.
+    /// </summary>
+    /// <param name="builder">The <see cref="PigeonBuilder"/>.</param>
+    /// <typeparam name="TFilter">The type of the publish filter.</typeparam>
+    /// <returns>The <see cref="PigeonBuilder"/>.</returns>
     public static PigeonBuilder AddPublishFilter<TFilter>(this PigeonBuilder builder)
         where TFilter : class, IPublishFilter
     {
@@ -69,10 +106,16 @@ public static class PigeonBuilderExtensions
         return builder;
     }
 
-    public static PigeonBuilder AddSendFilter<TFilter>(this PigeonBuilder builder)
-        where TFilter : class, ISendFilter
+    /// <summary>
+    /// Adds a consume filter.
+    /// </summary>
+    /// <param name="builder">The <see cref="PigeonBuilder"/>.</param>
+    /// <typeparam name="TFilter">The type of the consume filter.</typeparam>
+    /// <returns>The <see cref="PigeonBuilder"/>.</returns>
+    public static PigeonBuilder AddConsumeFilter<TFilter>(this PigeonBuilder builder)
+        where TFilter : class, IConsumeFilter
     {
-        builder.Services.AddScoped<ISendFilter, TFilter>();
+        builder.Services.AddScoped<IConsumeFilter, TFilter>();
         return builder;
     }
 

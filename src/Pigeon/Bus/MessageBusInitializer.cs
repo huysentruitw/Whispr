@@ -1,5 +1,6 @@
 ﻿namespace Pigeon.Bus;
 
+/// <inheritdoc />
 internal sealed class MessageBusInitializer(
     IEnumerable<MessageHandlerDescriptor> messageHandlerDescriptors,
     IQueueNamingConvention queueNamingConvention,

@@ -1,29 +1,35 @@
 ﻿namespace Pigeon.Bus;
 
+/// <inheritdoc />
 internal sealed class MessagePublisher(
     IEnumerable<IPublishFilter> publishFilters,
-    IEnumerable<ISendFilter> sendFilters,
     ITopicNamingConvention topicNamingConvention,
     ITransport transport) : IMessagePublisher
 {
-    public ValueTask Publish<TMessage>(TMessage message, DateTimeOffset? deferredUntil, CancellationToken cancellationToken)
+    public ValueTask Publish<TMessage>(TMessage message, Action<PublishOptions>? configure, CancellationToken cancellationToken)
         where TMessage : class
     {
         var messageType = message.GetType().FullName
             ?? throw new InvalidOperationException("Message type must have a full name");
 
+        var options = new PublishOptions();
+        configure?.Invoke(options);
+
         var envelope = new Envelope<TMessage>
         {
+            MessageId = Guid.NewGuid().ToString(),
             Message = message,
             MessageType = messageType,
-            TopicName = topicNamingConvention.Format(typeof(TMessage)),
-            CorrelationId = Guid.NewGuid().ToString(),
-            DeferredUntil = deferredUntil,
+            Headers = options.Headers,
+            DestinationTopicName = topicNamingConvention.Format(typeof(TMessage)),
+            CorrelationId = options.CorrelationId ?? Guid.NewGuid().ToString(),
+            DeferredUntil = options.DeferredUntil,
         };
 
         // Build the publishing pipeline
         Func<Envelope<TMessage>, CancellationToken, ValueTask> first = Send;
         foreach (var publishFilter in publishFilters.Reverse())
+
         {
             var next = first;
             first = (e, ct) => publishFilter.Publish(e, next, ct);
@@ -40,20 +46,11 @@ internal sealed class MessagePublisher(
         {
             Body = JsonSerializer.Serialize(envelope),
             MessageType = envelope.MessageType,
-            TopicName = envelope.TopicName,
+            MessageId = envelope.MessageId,
             CorrelationId = envelope.CorrelationId,
             DeferredUntil = envelope.DeferredUntil,
         };
 
-        // Build the sending pipeline
-        Func<SerializedEnvelope, CancellationToken, ValueTask> first = transport.Send;
-        foreach (var sendFilter in sendFilters.Reverse())
-        {
-            var next = first;
-            first = (e, ct) => sendFilter.Send(e, next, ct);
-        }
-
-        // Execute the sending pipeline
-        return first(serializedEnvelope, cancellationToken);
+        return transport.Send(envelope.DestinationTopicName, serializedEnvelope, cancellationToken);
     }
 }

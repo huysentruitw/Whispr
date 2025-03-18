@@ -1,22 +1,27 @@
 ﻿using System.Text;
-using System.Text.Json;
 using Pigeon.AzureServiceBus.Conventions;
 using Pigeon.AzureServiceBus.Factories;
 
 namespace Pigeon.AzureServiceBus;
 
+/// <inheritdoc />
 internal sealed class Transport(
     SenderFactory senderFactory,
     ProcessorFactory processorFactory,
     EntityManager entityManager,
     ISubscriptionNamingConvention subscriptionNamingConvention) : ITransport
 {
-    public async ValueTask Send(SerializedEnvelope envelope, CancellationToken cancellationToken = default)
+    private const string MessageTypePropertyName = "MessageType";
+
+    public async ValueTask Send(string topicName, SerializedEnvelope envelope, CancellationToken cancellationToken = default)
     {
-        var sender = senderFactory.GetOrCreateSender(envelope.TopicName);
+        var sender = senderFactory.GetOrCreateSender(topicName);
 
         var message = new ServiceBusMessage(envelope.Body)
         {
+            ContentType = "application/json",
+            ApplicationProperties = { [MessageTypePropertyName] = envelope.MessageType },
+            MessageId = envelope.MessageId,
             CorrelationId = envelope.CorrelationId,
         };
 
@@ -29,7 +34,7 @@ internal sealed class Transport(
         }
         catch (ServiceBusException ex) when(ex.Reason == ServiceBusFailureReason.MessagingEntityNotFound)
         {
-            await entityManager.CreateTopicIfNotExists(envelope.TopicName, cancellationToken);
+            await entityManager.CreateTopicIfNotExists(topicName, cancellationToken);
             await sender.SendMessageAsync(message, cancellationToken);
         }
     }
@@ -49,38 +54,54 @@ internal sealed class Transport(
 
         var processor = processorFactory.GetOrCreateProcessor(queueName);
 
-        processor.ProcessMessageAsync += async args =>
-        {
-            var messageBody = Encoding.UTF8.GetString(args.Message.Body);
-            var envelopeMetadata = JsonSerializer.Deserialize<EnvelopeMetadata>(messageBody)
-                ?? throw new InvalidOperationException($"Failed to deserialize message with correlation ID: {args.Message.CorrelationId}");
-
-            var serializedEnvelope = new SerializedEnvelope
-            {
-                Body = messageBody,
-                MessageType = envelopeMetadata.MessageType,
-                TopicName = envelopeMetadata.TopicName,
-                CorrelationId = args.Message.CorrelationId,
-                DeferredUntil = envelopeMetadata.DeferredUntil,
-            };
-
-            try
-            {
-                await messageCallback(serializedEnvelope, cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidOperationException($"Failed to process message with correlation ID: {args.Message.CorrelationId}", ex);
-            }
-
-            await args.CompleteMessageAsync(args.Message, cancellationToken);
-        };
-
-        // TODO Implement error handling
-        processor.ProcessErrorAsync += args => Task.CompletedTask;
+        processor.ProcessMessageAsync += args => ProcessMessage(args, messageCallback, cancellationToken);
+        processor.ProcessErrorAsync += args => ProcessError(args, cancellationToken);
 
         await processor.StartProcessingAsync(cancellationToken);
     }
 
-    private sealed record EnvelopeMetadata : EnvelopeBase;
+    private static async Task ProcessMessage(
+        ProcessMessageEventArgs args,
+        Func<SerializedEnvelope, CancellationToken, ValueTask> messageCallback,
+        CancellationToken cancellationToken)
+    {
+        var messageType = args.Message.ApplicationProperties[MessageTypePropertyName]?.ToString();
+        if (messageType is null)
+        {
+            await args.DeadLetterMessageAsync(
+                args.Message,
+                deadLetterReason: "Missing message type",
+                deadLetterErrorDescription: "The message type is missing from the application properties.",
+                cancellationToken: cancellationToken);
+
+            return;
+        }
+
+        var messageBody = Encoding.UTF8.GetString(args.Message.Body);
+
+        var serializedEnvelope = new SerializedEnvelope
+        {
+            Body = messageBody,
+            MessageType = messageType,
+            MessageId = args.Message.MessageId,
+            CorrelationId = args.Message.CorrelationId,
+            DeferredUntil = args.Message.ScheduledEnqueueTime != default ? args.Message.ScheduledEnqueueTime : null,
+        };
+
+        try
+        {
+            await messageCallback(serializedEnvelope, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Failed to process message with correlation ID: {args.Message.CorrelationId}", ex);
+        }
+
+        await args.CompleteMessageAsync(args.Message, cancellationToken);
+    }
+
+    private static Task ProcessError(ProcessErrorEventArgs args, CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException();
+    }
 }

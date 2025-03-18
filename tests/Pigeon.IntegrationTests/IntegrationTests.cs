@@ -1,6 +1,5 @@
 using Pigeon.AzureServiceBus;
 using Pigeon.IntegrationTests.Tests.Conventions;
-using Pigeon.IntegrationTests.Tests.Data;
 using Pigeon.IntegrationTests.Tests.Filters;
 using Pigeon.IntegrationTests.Tests.Handlers;
 using Pigeon.IntegrationTests.Tests.Messages;
@@ -58,7 +57,6 @@ public sealed class IntegrationTests
                     .AddPublishFilter<FirstPublishFilter>()
                     .AddPublishFilter<SecondPublishFilter>()
                 .Services
-                .AddDbContext<DataContext>()
                 .BuildServiceProvider();
 
             await services.GetRequiredService<IMessageBusInitializer>().Start();
