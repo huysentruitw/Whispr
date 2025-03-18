@@ -1,9 +1,7 @@
 ﻿namespace Pigeon;
 
-public interface IMessageBus
+public interface IMessagePublisher
 {
-    ValueTask Start(CancellationToken cancellationToken = default);
-
     ValueTask Publish<TMessage>(TMessage message, DateTimeOffset? deferredUntil = null, CancellationToken cancellationToken = default)
         where TMessage : class;
 }

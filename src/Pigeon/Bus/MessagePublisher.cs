@@ -4,7 +4,7 @@ internal sealed class MessagePublisher(
     IEnumerable<IPublishFilter> publishFilters,
     IEnumerable<ISendFilter> sendFilters,
     ITopicNamingConvention topicNamingConvention,
-    ITransport transport)
+    ITransport transport) : IMessagePublisher
 {
     public ValueTask Publish<TMessage>(TMessage message, DateTimeOffset? deferredUntil, CancellationToken cancellationToken)
         where TMessage : class

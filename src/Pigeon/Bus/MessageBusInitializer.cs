@@ -1,25 +1,14 @@
 ﻿namespace Pigeon.Bus;
 
-internal sealed class MessageBus(
+internal sealed class MessageBusInitializer(
     IEnumerable<MessageHandlerDescriptor> messageHandlerDescriptors,
     IQueueNamingConvention queueNamingConvention,
     ITopicNamingConvention topicNamingConvention,
     ITransport transport,
-    IServiceProvider serviceProvider) : IMessageBus
+    IServiceProvider serviceProvider) : IMessageBusInitializer
 {
     public ValueTask Start(CancellationToken cancellationToken = default)
         => StartListeners(cancellationToken);
-
-    public async ValueTask Publish<TMessage>(
-        TMessage message,
-        DateTimeOffset? deferredUntil = null,
-        CancellationToken cancellationToken = default)
-        where TMessage : class
-    {
-        await using var scope = serviceProvider.CreateAsyncScope();
-        var publisher = scope.ServiceProvider.GetRequiredService<MessagePublisher>();
-        await publisher.Publish(message, deferredUntil, cancellationToken);
-    }
 
     private async ValueTask StartListeners(CancellationToken cancellationToken = default)
     {
@@ -40,7 +29,7 @@ internal sealed class MessageBus(
         CancellationToken cancellationToken = default)
     {
         var messageType = descriptor.MessageTypes.SingleOrDefault(type => type.FullName == serializedEnvelope.MessageType)
-            ?? throw new InvalidOperationException($"Handler: {descriptor.HandlerType} doesn't support message type: {serializedEnvelope.MessageType}");
+                          ?? throw new InvalidOperationException($"Handler: {descriptor.HandlerType} doesn't support message type: {serializedEnvelope.MessageType}");
 
         var messageProcessorType = typeof(MessageProcessor<,>).MakeGenericType(descriptor.HandlerType, messageType);
 

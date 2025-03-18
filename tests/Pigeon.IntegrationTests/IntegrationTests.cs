@@ -1,5 +1,6 @@
 using Pigeon.AzureServiceBus;
 using Pigeon.IntegrationTests.Tests.Conventions;
+using Pigeon.IntegrationTests.Tests.Data;
 using Pigeon.IntegrationTests.Tests.Filters;
 using Pigeon.IntegrationTests.Tests.Handlers;
 using Pigeon.IntegrationTests.Tests.Messages;
@@ -16,7 +17,7 @@ public sealed class IntegrationTests
         var message = new ChirpHeard("Robin", TimeSpan.FromSeconds(1));
 
         // Act
-        await harness.MessageBus.Publish(message, TestContext.Current.CancellationToken);
+        await harness.MessagePublisher.Publish(message, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         var handledMessage = ChirpHandler.WaitForMessage<ChirpHeard>(m => m.BirdName == "Robin", TimeSpan.FromSeconds(30));
@@ -27,10 +28,10 @@ public sealed class IntegrationTests
     {
         private readonly ServiceProvider _serviceProvider;
 
-        private TestHarness(ServiceProvider serviceProvider, IMessageBus messageBus)
+        private TestHarness(ServiceProvider serviceProvider, IMessagePublisher messagePublisher)
         {
             _serviceProvider = serviceProvider;
-            MessageBus = messageBus;
+            MessagePublisher = messagePublisher;
         }
 
         public ValueTask DisposeAsync() => _serviceProvider.DisposeAsync();
@@ -44,28 +45,29 @@ public sealed class IntegrationTests
 
             var services = new ServiceCollection()
                 .AddPigeon()
-                .AddAzureServiceBusTransport(options =>
-                {
-                    options.ConnectionString =
-                        configuration.GetValue<string>("AzureServiceBus:ConnectionString")
-                        ?? throw new InvalidOperationException("AzureServiceBus:ConnectionString is required");
-                })
-                .AddTopicNamingConvention<TopicNamingConvention>()
-                .AddQueueNamingConvention<QueueNamingConvention>()
-                .AddSubscriptionNamingConvention<SubscriptionNamingConvention>()
-                .AddMessageHandlersFromAssembly(Assembly.GetExecutingAssembly())
-                .AddPublishFilter<FirstPublishFilter>()
-                .AddPublishFilter<SecondPublishFilter>()
+                    .AddAzureServiceBusTransport(options =>
+                    {
+                        options.ConnectionString =
+                            configuration.GetValue<string>("AzureServiceBus:ConnectionString")
+                            ?? throw new InvalidOperationException("AzureServiceBus:ConnectionString is required");
+                    })
+                    .AddTopicNamingConvention<TopicNamingConvention>()
+                    .AddQueueNamingConvention<QueueNamingConvention>()
+                    .AddSubscriptionNamingConvention<SubscriptionNamingConvention>()
+                    .AddMessageHandlersFromAssembly(Assembly.GetExecutingAssembly())
+                    .AddPublishFilter<FirstPublishFilter>()
+                    .AddPublishFilter<SecondPublishFilter>()
                 .Services
+                .AddDbContext<DataContext>()
                 .BuildServiceProvider();
 
-            var messageBus = services.GetRequiredService<IMessageBus>();
-            await messageBus.Start();
-            return new TestHarness(services, messageBus);
+            await services.GetRequiredService<IMessageBusInitializer>().Start();
+            var messagePublisher = services.GetRequiredService<IMessagePublisher>();
+            return new TestHarness(services, messagePublisher);
         }
 
         public IServiceProvider Services => _serviceProvider;
 
-        public IMessageBus MessageBus { get; }
+        public IMessagePublisher MessagePublisher { get; }
     }
 }
