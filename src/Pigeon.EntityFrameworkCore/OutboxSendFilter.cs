@@ -2,7 +2,9 @@
 
 namespace Pigeon.EntityFrameworkCore;
 
-internal sealed class OutboxSendFilter<TDbContext>(TDbContext dbContext) : ISendFilter
+internal sealed class OutboxSendFilter<TDbContext>(
+    TDbContext dbContext,
+    OutboxProcessorTrigger<TDbContext> trigger) : ISendFilter
     where TDbContext : DbContext
 {
     public async ValueTask Send(
@@ -18,6 +20,9 @@ internal sealed class OutboxSendFilter<TDbContext>(TDbContext dbContext) : ISend
             CreatedAtUtc = DateTime.UtcNow,
         };
 
-        await dbContext.Set<OutboxMessage>().AddAsync(outboxMessage, cancellationToken);
+        await dbContext.Set<OutboxMessage>()
+            .AddAsync(outboxMessage, cancellationToken);
+
+        trigger.Release();
     }
 }

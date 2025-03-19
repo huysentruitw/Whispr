@@ -12,13 +12,6 @@ public sealed class DataContext(DbContextOptions<DataContext> options) : DbConte
             .ApplyConfigurationsFromAssembly(typeof(DataContext).Assembly)
             .AddOutboxMessageEntity(schemaName: "Application");
     }
-
-    override protected void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    {
-        optionsBuilder
-            .UseSqlServer()
-            .UseOutbox();
-    }
 }
 
 public sealed class DataContextFactory : IDesignTimeDbContextFactory<DataContext>

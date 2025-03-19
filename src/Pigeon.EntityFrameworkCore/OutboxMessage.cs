@@ -28,5 +28,5 @@ public sealed record OutboxMessage
     /// <summary>
     /// The date and time the outbox message was processed in UTC.
     /// </summary>
-    public DateTime? ProcessedAtUtc { get; init; }
+    public DateTime? ProcessedAtUtc { get; set; }
 }
