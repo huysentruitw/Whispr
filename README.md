@@ -1,4 +1,4 @@
-# Pigeon Messaging Library
+# Whispr Messaging Library
 
 A lightweight message bus implementation for Azure Service Bus with EF Core outbox.
 
@@ -8,7 +8,7 @@ Supports .NET 8 with EF Core 8 and .NET 9 with EF Core 9.
 
 ```csharp
 services
-    .AddPigeon()
+    .AddWhispr()
         .AddAzureServiceBusTransport(options =>
         {
             options.ConnectionString = "...";
@@ -46,7 +46,7 @@ and register them using:
 
 ```csharp
 services
-    .AddPigeon()
+    .AddWhispr()
         .AddTopicNamingConvention<MyTopicNamingConvention>()
         .AddQueueNamingConvention<MyQueueNamingConvention>();
 ```
@@ -63,7 +63,7 @@ The Azure Service Bus transport is implemented using the `Microsoft.Azure.Servic
 
 ```csharp
 services
-    .AddPigeon()
+    .AddWhispr()
         .AddAzureServiceBusTransport(options =>
         {
             options.ConnectionString = "Endpoint=sb://...";
@@ -83,7 +83,7 @@ and registered using:
 
 ```csharp
 services
-    .AddPigeon()
+    .AddWhispr()
         .AddSubscriptionNamingConvention<MySubscriptionNamingConvention>();
 ```
 
@@ -120,7 +120,7 @@ Enabling the outbox is a two step process:
 
 ```csharp
 services
-    .AddPigeon()
+    .AddWhispr()
         .AddOutbox(options =>
         {
             options.QueryDelay = TimeSpan.FromSeconds(10);
