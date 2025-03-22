@@ -19,9 +19,9 @@ public sealed record PublishOptions
 {
     internal Dictionary<string, string> Headers { get; } = new();
 
-    internal string? CorrelationId { get; private set; }
+    internal string? CorrelationId { get; set; }
 
-    internal DateTimeOffset? DeferredUntil { get; private set; }
+    internal DateTimeOffset? DeferredUntil { get; set; }
 
     /// <summary>
     /// Sets a header for the message.
