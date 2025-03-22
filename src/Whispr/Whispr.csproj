@@ -1,6 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <Title>Whispr</Title>
+    <Description>A lightweight message bus implementation for Azure Service Bus with EF Core outbox.</Description>
+
     <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -9,7 +12,7 @@
 
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <WarningsAsErrors />
-    
+
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 
@@ -26,5 +29,5 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Whispr.Tests" />
   </ItemGroup>
-  
+
 </Project>

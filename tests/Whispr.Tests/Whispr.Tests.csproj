@@ -27,7 +27,6 @@
     <PackageReference Include="System.Text.Json" Version="9.0.3"/>
   </ItemGroup>
 
-
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0"/>
     <PackageReference Include="Moq" Version="4.20.72" />

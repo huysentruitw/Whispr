@@ -1,6 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <Title>Whispr.EntityFrameworkCore</Title>
+    <Description>A lightweight message bus implementation for Azure Service Bus with EF Core outbox. EF Core integration.</Description>
+
     <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>

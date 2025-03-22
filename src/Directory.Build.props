@@ -1,0 +1,14 @@
+<Project>
+
+  <PropertyGroup>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Company>Wouter Huysentruit</Company>
+    <Version>1.0.0.0</Version>
+    <Authors>Wouter Huysentruit</Authors>
+    <PackageProjectUrl>https://github.com/huysentruitw/Whispr</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/huysentruitw/Whispr</RepositoryUrl>
+  </PropertyGroup>
+
+</Project>
