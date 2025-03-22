@@ -119,7 +119,15 @@ Enabling the outbox is a two step process:
 ```csharp
 services
     .AddPigeon()
-        .AddOutbox();
+        .AddOutbox(options =>
+        {
+            options.QueryDelay = TimeSpan.FromSeconds(10);
+            options.MaxMessageBatchSize = 100;
+            options.EnableMessageRetention = true;
+            options.ProcessedMessageRetentionPeriod = TimeSpan.FromDays(1);
+            options.ProcessedMessageCleanupDelay = TimeSpan.FromHours(1);
+            options.ProcessedMessageCleanupBatchSize = 100;
+        });
 ```
 
 2. Add the outbox to the DbContext:

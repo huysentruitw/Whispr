@@ -72,9 +72,9 @@ public sealed class IntegrationTests
 
                     if (useOutbox)
                     {
-                        pigeonBuilder.AddOutbox<DataContext>(o =>
+                        pigeonBuilder.AddOutbox<DataContext>(options =>
                         {
-                            o.EnableMessageRetention = false;
+                            options.EnableMessageRetention = false;
                         });
                     }
                 })
