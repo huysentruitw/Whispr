@@ -1,12 +1,4 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
-using Pigeon.AzureServiceBus;
-using Pigeon.EntityFrameworkCore;
-using Pigeon.IntegrationTests.Tests.Conventions;
-using Pigeon.IntegrationTests.Tests.Data;
-using Pigeon.IntegrationTests.Tests.Filters;
-using Pigeon.IntegrationTests.Tests.Handlers;
-using Pigeon.IntegrationTests.Tests.Messages;
 
 namespace Pigeon.IntegrationTests.Tests;
 
@@ -63,11 +55,8 @@ public sealed class IntegrationTests
                             options.UseSqlServer(connectionString);
                         });
 
-                    // Register pigeon services
                     var pigeonBuilder = services
-                        .AddPigeon();
-
-                    pigeonBuilder
+                        .AddPigeon()
                         .AddAzureServiceBusTransport(options =>
                         {
                             options.ConnectionString =
@@ -85,9 +74,7 @@ public sealed class IntegrationTests
                     {
                         pigeonBuilder.AddOutbox<DataContext>(o =>
                         {
-                            o.EnableMessageRetention = true;
-                            o.ProcessedMessageCleanupDelay = TimeSpan.FromSeconds(0);
-                            o.ProcessedMessageRetentionPeriod = TimeSpan.FromMinutes(5);
+                            o.EnableMessageRetention = false;
                         });
                     }
                 })

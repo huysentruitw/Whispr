@@ -1,6 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Design;
-using Pigeon.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore.Design;
 
 namespace Pigeon.IntegrationTests.Tests.Data;
 

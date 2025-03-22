@@ -19,7 +19,7 @@ public sealed record OutboxOptions
     /// <summary>
     /// Set to <see langword="true"/> to enable message retention.
     /// </summary>
-    public bool EnableMessageRetention { get; set; } = false;
+    public bool EnableMessageRetention { get; set; } = true;
 
     /// <summary>
     /// Processed message retention period.

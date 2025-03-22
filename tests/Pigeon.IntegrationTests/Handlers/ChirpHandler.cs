@@ -1,5 +1,4 @@
 ﻿using System.Collections.Concurrent;
-using Pigeon.IntegrationTests.Tests.Messages;
 
 namespace Pigeon.IntegrationTests.Tests.Handlers;
 

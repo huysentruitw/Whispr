@@ -1,6 +1,4 @@
-﻿using Pigeon.IntegrationTests.Tests.Messages;
-
-namespace Pigeon.IntegrationTests.Tests.Handlers;
+﻿namespace Pigeon.IntegrationTests.Tests.Handlers;
 
 internal sealed class NestHandler
     : IMessageHandler<NestBuilt>
