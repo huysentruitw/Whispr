@@ -112,6 +112,8 @@ The transactional outbox pattern is implemented using EF Core and consists of:
 
 There is also a trigger mechanism that forces the outbox to be processed as soon as possible. This is useful when you want to ensure that messages are sent immediately after the transaction is committed.
 
+> ⚠️ The query used by the outbox background service is currently implemented for MSSQL Server only. If you are using a different database, you will need to implement your own query.
+
 Enabling the outbox is a two step process:
 
 1. Add and configure the outbox using the `AddOutbox` extension method:
