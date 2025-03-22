@@ -1,4 +1,4 @@
-﻿namespace Pigeon;
+﻿namespace Pigeon.Builder;
 
 /// <summary>
 /// A builder for configuring Pigeon.
@@ -16,11 +16,4 @@ public sealed class PigeonBuilder
     /// Gets the original <see cref="IServiceCollection"/> to continue configuring other services.
     /// </summary>
     public IServiceCollection Services { get; }
-}
-
-internal sealed record MessageHandlerDescriptor
-{
-    public required Type HandlerType { get; init; }
-
-    public required Type[] MessageTypes { get; init; }
 }

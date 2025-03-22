@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Pigeon;
 
@@ -56,7 +57,7 @@ public static class PigeonBuilderExtensions
     public static PigeonBuilder AddTopicNamingConvention<TNamingConvention>(this PigeonBuilder builder)
         where TNamingConvention : class, ITopicNamingConvention
     {
-        builder.Services.AddSingleton<ITopicNamingConvention, TNamingConvention>();
+        builder.Services.TryAddSingleton<ITopicNamingConvention, TNamingConvention>();
         return builder;
     }
 
@@ -77,7 +78,7 @@ public static class PigeonBuilderExtensions
     public static PigeonBuilder AddQueueNamingConvention<TNamingConvention>(this PigeonBuilder builder)
         where TNamingConvention : class, IQueueNamingConvention
     {
-        builder.Services.AddSingleton<IQueueNamingConvention, TNamingConvention>();
+        builder.Services.TryAddSingleton<IQueueNamingConvention, TNamingConvention>();
         return builder;
     }
 
@@ -116,19 +117,6 @@ public static class PigeonBuilderExtensions
         where TFilter : class, IConsumeFilter
     {
         builder.Services.AddScoped<IConsumeFilter, TFilter>();
-        return builder;
-    }
-
-    /// <summary>
-    /// Adds a send filter.
-    /// </summary>
-    /// <param name="builder">The <see cref="PigeonBuilder"/>.</param>
-    /// <typeparam name="TFilter">The type of the send filter.</typeparam>
-    /// <returns>The <see cref="PigeonBuilder"/>.</returns>
-    public static PigeonBuilder AddSendFilter<TFilter>(this PigeonBuilder builder)
-        where TFilter : class, ISendFilter
-    {
-        builder.Services.AddScoped<ISendFilter, TFilter>();
         return builder;
     }
 

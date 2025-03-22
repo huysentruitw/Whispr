@@ -12,35 +12,39 @@ namespace Pigeon.IntegrationTests.Tests;
 
 public sealed class IntegrationTests
 {
-    [Fact]
-    public async Task Given_MessageHandlerRegistered_When_MessagePublished_Then_MessageHandled()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_MessageHandlerRegistered_When_MessagePublished_Then_MessageHandled(bool useOutbox)
     {
         // Arrange
-        using var harness = await TestHarness.Create();
-        var message = new ChirpHeard("Robin", TimeSpan.FromSeconds(1));
-        harness.DataContext.Set<Product>().Add(new Product
-        {
-            Id = Guid.NewGuid(),
-            Name = "Test",
-            Price = 1.23m
-        });
+        var message = new ChirpHeard($"Robin {Guid.NewGuid():N}", TimeSpan.FromSeconds(1));
+        using var harness = await TestHarness.Create(useOutbox);
 
         // Act
-        await harness.MessagePublisher.Publish(message, cancellationToken: TestContext.Current.CancellationToken);
-        await harness.DataContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await MimicAction(harness.ServiceProvider, message);
 
         // Assert
-        var handledMessage = ChirpHandler.WaitForMessage<ChirpHeard>(m => m.BirdName == "Robin", TimeSpan.FromSeconds(10));
+        var handledMessage = ChirpHandler.WaitForMessage<ChirpHeard>(m => m.BirdName == message.BirdName, TimeSpan.FromSeconds(10));
         Assert.NotNull(handledMessage);
+    }
+
+    private static async ValueTask MimicAction(IServiceProvider serviceProvider, ChirpHeard message)
+    {
+        using var serviceScope = serviceProvider.CreateScope();
+        var dbContext = serviceScope.ServiceProvider.GetRequiredService<DataContext>();
+        var messagePublisher = serviceScope.ServiceProvider.GetRequiredService<IMessagePublisher>();
+
+        dbContext.Set<Product>().Add(new Product { Id = Guid.NewGuid(), Name = "Test", Price = 1.23m });
+        await messagePublisher.Publish(message, cancellationToken: TestContext.Current.CancellationToken);
+        await dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
     private sealed class TestHarness(IHost host) : IDisposable
     {
-        private readonly IServiceScope _scope = host.Services.CreateScope();
-
         public void Dispose() => host.Dispose();
 
-        public static async ValueTask<TestHarness> Create()
+        public static async ValueTask<TestHarness> Create(bool useOutbox)
         {
             var configuration = new ConfigurationBuilder()
                 .AddJsonFile("appsettings.json")
@@ -55,10 +59,15 @@ public sealed class IntegrationTests
                         .AddDbContext<DataContext>(options =>
                         {
                             var connectionString = configuration.GetValue<string>("SqlServer:ConnectionString")
-                                                   ?? throw new InvalidOperationException("SqlServer:ConnectionString is required");
+                                ?? throw new InvalidOperationException("SqlServer:ConnectionString is required");
                             options.UseSqlServer(connectionString);
-                        })
-                        .AddPigeon()
+                        });
+
+                    // Register pigeon services
+                    var pigeonBuilder = services
+                        .AddPigeon();
+
+                    pigeonBuilder
                         .AddAzureServiceBusTransport(options =>
                         {
                             options.ConnectionString =
@@ -70,8 +79,17 @@ public sealed class IntegrationTests
                         .AddSubscriptionNamingConvention<SubscriptionNamingConvention>()
                         .AddMessageHandlersFromAssembly(Assembly.GetExecutingAssembly())
                         .AddPublishFilter<FirstPublishFilter>()
-                        .AddPublishFilter<SecondPublishFilter>()
-                        .AddOutboxSendFilter<DataContext>();
+                        .AddPublishFilter<SecondPublishFilter>();
+
+                    if (useOutbox)
+                    {
+                        pigeonBuilder.AddOutbox<DataContext>(o =>
+                        {
+                            o.EnableMessageRetention = true;
+                            o.ProcessedMessageCleanupDelay = TimeSpan.FromSeconds(0);
+                            o.ProcessedMessageRetentionPeriod = TimeSpan.FromMinutes(5);
+                        });
+                    }
                 })
                 .Build();
 
@@ -81,8 +99,6 @@ public sealed class IntegrationTests
             return new TestHarness(host);
         }
 
-        public IMessagePublisher MessagePublisher => _scope.ServiceProvider.GetRequiredService<IMessagePublisher>();
-
-        public DataContext DataContext => _scope.ServiceProvider.GetRequiredService<DataContext>();
+        public IServiceProvider ServiceProvider => host.Services;
     }
 }

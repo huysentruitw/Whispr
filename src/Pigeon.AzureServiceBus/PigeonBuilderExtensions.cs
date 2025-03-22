@@ -1,5 +1,6 @@
 ﻿using Pigeon.AzureServiceBus.Conventions;
 using Pigeon.AzureServiceBus.Factories;
+using Pigeon.Builder;
 
 namespace Pigeon.AzureServiceBus;
 

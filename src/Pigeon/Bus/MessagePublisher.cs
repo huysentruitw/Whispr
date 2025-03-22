@@ -3,9 +3,9 @@
 /// <inheritdoc />
 internal sealed class MessagePublisher(
     IEnumerable<IPublishFilter> publishFilters,
-    IEnumerable<ISendFilter> sendFilters,
     ITopicNamingConvention topicNamingConvention,
-    ITransport transport) : IMessagePublisher
+    ITransport transport,
+    IOutbox? outbox = null) : IMessagePublisher
 {
     public ValueTask Publish<TMessage>(TMessage message, Action<PublishOptions>? configure, CancellationToken cancellationToken)
         where TMessage : class
@@ -30,7 +30,6 @@ internal sealed class MessagePublisher(
         // Build the publishing pipeline
         Func<Envelope<TMessage>, CancellationToken, ValueTask> first = Send;
         foreach (var publishFilter in publishFilters.Reverse())
-
         {
             var next = first;
             first = (e, ct) => publishFilter.Publish(e, next, ct);
@@ -52,15 +51,8 @@ internal sealed class MessagePublisher(
             DeferredUntil = envelope.DeferredUntil,
         };
 
-        // Build the sending pipeline
-        Func<string, SerializedEnvelope, CancellationToken, ValueTask> first = transport.Send;
-        foreach (var sendFilter in sendFilters.Reverse())
-        {
-            var next = first;
-            first = (topicName, se, ct) => sendFilter.Send(topicName, se, next, ct);
-        }
-
-        // Execute the sending pipeline
-        return first(envelope.DestinationTopicName, serializedEnvelope, cancellationToken);
+        // When an outbox is available, we add the message to the outbox instead of sending it directly to the transport.
+        return outbox?.Add(envelope.DestinationTopicName, serializedEnvelope, cancellationToken)
+            ?? transport.Send(envelope.DestinationTopicName, serializedEnvelope, cancellationToken);
     }
 }
