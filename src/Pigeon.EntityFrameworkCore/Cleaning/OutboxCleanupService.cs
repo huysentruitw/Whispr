@@ -42,7 +42,7 @@ internal sealed class OutboxCleanupService<TDbContext>(
 
         while (true)
         {
-            var expiredUtc = DateTime.UtcNow - _retentionPeriod;
+            var expiredUtc = DateTimeOffset.UtcNow - _retentionPeriod;
             var rowsDeleted = await dbContext.Set<OutboxMessage>()
                 .Take(_batchSize)
                 .OrderBy(x => x.ProcessedAtUtc)

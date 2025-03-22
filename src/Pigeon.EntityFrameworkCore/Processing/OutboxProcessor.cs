@@ -44,12 +44,21 @@ internal sealed class OutboxProcessor<TDbContext>(
 
         foreach (var outboxMessage in outboxMessages)
         {
-            await transport.Send(outboxMessage.DestinationTopicName, outboxMessage.Envelope, CancellationToken.None);
+            var envelope = new SerializedEnvelope
+            {
+                Body = outboxMessage.Body,
+                MessageType = outboxMessage.MessageType,
+                MessageId = outboxMessage.MessageId,
+                CorrelationId = outboxMessage.CorrelationId,
+                DeferredUntil = outboxMessage.DeferredUntil,
+            };
+
+            await transport.Send(outboxMessage.DestinationTopicName, envelope, CancellationToken.None);
         }
 
         if (_messageRetentionEnabled)
         {
-            var processedAtUtc = DateTime.UtcNow;
+            var processedAtUtc = DateTimeOffset.UtcNow;
             await dbContext.Set<OutboxMessage>()
                 .Where(x => outboxMessages.Select(m => m.Id).Contains(x.Id))
                 .ExecuteUpdateAsync(x => x.SetProperty(m => m.ProcessedAtUtc, processedAtUtc), CancellationToken.None);

@@ -13,9 +13,29 @@ public sealed record OutboxMessage
     public long Id { get; init; }
 
     /// <summary>
-    /// The serialized envelope.
+    /// The message body.
     /// </summary>
-    public required SerializedEnvelope Envelope { get; init; }
+    public required string Body { get; init; }
+
+    /// <summary>
+    /// The message type.
+    /// </summary>
+    public required string MessageType { get; init; }
+
+    /// <summary>
+    /// The message ID.
+    /// </summary>
+    public required string MessageId { get; init; }
+
+    /// <summary>
+    /// The correlation ID.
+    /// </summary>
+    public required string CorrelationId { get; init; }
+
+    /// <summary>
+    /// The deferred until date and time. If <see langword="null"/>, the message is not deferred and will be processed immediately.
+    /// </summary>
+    public required DateTimeOffset? DeferredUntil { get; init; }
 
     /// <summary>
     /// The destination topic name.
@@ -25,12 +45,12 @@ public sealed record OutboxMessage
     /// <summary>
     /// The date and time the outbox message was created in UTC.
     /// </summary>
-    public required DateTime CreatedAtUtc { get; init; }
+    public required DateTimeOffset CreatedAtUtc { get; init; }
 
     /// <summary>
     /// The date and time the outbox message was processed in UTC.
     /// </summary>
-    public DateTime? ProcessedAtUtc { get; set; }
+    public DateTimeOffset? ProcessedAtUtc { get; set; }
 }
 
 internal sealed class OutboxMessageEntityTypeConfiguration : IEntityTypeConfiguration<OutboxMessage>
@@ -42,25 +62,22 @@ internal sealed class OutboxMessageEntityTypeConfiguration : IEntityTypeConfigur
         builder.Property(x => x.Id)
             .ValueGeneratedOnAdd();
 
-        builder.OwnsOne(x => x.Envelope, envelope =>
-        {
-            envelope.Property(x => x.Body)
-                .IsRequired();
+        builder.Property(x => x.Body)
+            .IsRequired();
 
-            envelope.Property(x => x.MessageType)
-                .IsRequired()
-                .HasMaxLength(250);
+        builder.Property(x => x.MessageType)
+            .IsRequired()
+            .HasMaxLength(250);
 
-            envelope.Property(x => x.MessageId)
-                .IsRequired()
-                .HasMaxLength(50);
+        builder.Property(x => x.MessageId)
+            .IsRequired()
+            .HasMaxLength(50);
 
-            envelope.Property(x => x.CorrelationId)
-                .IsRequired()
-                .HasMaxLength(50);
+        builder.Property(x => x.CorrelationId)
+            .IsRequired()
+            .HasMaxLength(50);
 
-            envelope.Property(x => x.DeferredUntil);
-        });
+        builder.Property(x => x.DeferredUntil);
 
         builder.Property(x => x.DestinationTopicName)
             .IsRequired()

@@ -30,16 +30,38 @@ namespace Pigeon.IntegrationTests.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("datetime2");
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CorrelationId")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("DeferredUntil")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("DestinationTopicName")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<DateTime?>("ProcessedAtUtc")
-                        .HasColumnType("datetime2");
+                    b.Property<string>("MessageId")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("MessageType")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<DateTimeOffset?>("ProcessedAtUtc")
+                        .HasColumnType("datetimeoffset");
 
                     b.HasKey("Id");
 
@@ -65,47 +87,6 @@ namespace Pigeon.IntegrationTests.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Product", "Application");
-                });
-
-            modelBuilder.Entity("Pigeon.EntityFrameworkCore.Entities.OutboxMessage", b =>
-                {
-                    b.OwnsOne("Pigeon.SerializedEnvelope", "Envelope", b1 =>
-                        {
-                            b1.Property<long>("OutboxMessageId")
-                                .HasColumnType("bigint");
-
-                            b1.Property<string>("Body")
-                                .IsRequired()
-                                .HasColumnType("nvarchar(max)");
-
-                            b1.Property<string>("CorrelationId")
-                                .IsRequired()
-                                .HasMaxLength(50)
-                                .HasColumnType("nvarchar(50)");
-
-                            b1.Property<DateTimeOffset?>("DeferredUntil")
-                                .HasColumnType("datetimeoffset");
-
-                            b1.Property<string>("MessageId")
-                                .IsRequired()
-                                .HasMaxLength(50)
-                                .HasColumnType("nvarchar(50)");
-
-                            b1.Property<string>("MessageType")
-                                .IsRequired()
-                                .HasMaxLength(250)
-                                .HasColumnType("nvarchar(250)");
-
-                            b1.HasKey("OutboxMessageId");
-
-                            b1.ToTable("OutboxMessage", "Application");
-
-                            b1.WithOwner()
-                                .HasForeignKey("OutboxMessageId");
-                        });
-
-                    b.Navigation("Envelope")
-                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }

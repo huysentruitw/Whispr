@@ -18,14 +18,14 @@ namespace Pigeon.IntegrationTests.Migrations
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Envelope_Body = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Envelope_MessageType = table.Column<string>(type: "nvarchar(250)", maxLength: 250, nullable: false),
-                    Envelope_MessageId = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Envelope_CorrelationId = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Envelope_DeferredUntil = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
+                    Body = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    MessageType = table.Column<string>(type: "nvarchar(250)", maxLength: 250, nullable: false),
+                    MessageId = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    CorrelationId = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    DeferredUntil = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
                     DestinationTopicName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    CreatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    ProcessedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    CreatedAtUtc = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
+                    ProcessedAtUtc = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true)
                 },
                 constraints: table =>
                 {

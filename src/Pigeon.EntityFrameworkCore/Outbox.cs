@@ -11,9 +11,13 @@ internal sealed class Outbox<TDbContext>(TDbContext dbContext, OutboxProcessorTr
     {
         var outboxMessage = new OutboxMessage
         {
-            Envelope = envelope,
+            Body = envelope.Body,
+            MessageType = envelope.MessageType,
+            MessageId = envelope.MessageId,
+            CorrelationId = envelope.CorrelationId,
+            DeferredUntil = envelope.DeferredUntil,
             DestinationTopicName = topicName,
-            CreatedAtUtc = DateTime.UtcNow,
+            CreatedAtUtc = DateTimeOffset.UtcNow,
         };
 
         await dbContext.Set<OutboxMessage>()
