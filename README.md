@@ -2,6 +2,8 @@
 
 A lightweight message bus implementation for Azure Service Bus with EF Core outbox.
 
+Supports .NET 8 with EF Core 8 and .NET 9 with EF Core 9.
+
 ## Example usage
 
 ```csharp
@@ -9,9 +11,7 @@ services
     .AddPigeon()
         .AddAzureServiceBusTransport(options =>
         {
-            options.ConnectionString =
-                configuration.GetValue<string>("AzureServiceBus:ConnectionString")
-                ?? throw new InvalidOperationException("AzureServiceBus:ConnectionString is required");
+            options.ConnectionString = "...";
         })
         .AddTopicNamingConvention<DefaultTopicNamingConvention>()
         .AddQueueNamingConvention<DefaultQueueNamingConvention>()
@@ -66,9 +66,7 @@ services
     .AddPigeon()
         .AddAzureServiceBusTransport(options =>
         {
-            options.ConnectionString =
-                configuration.GetValue<string>("AzureServiceBus:ConnectionString")
-                ?? throw new InvalidOperationException("AzureServiceBus:ConnectionString is required");
+            options.ConnectionString = "Endpoint=sb://...";
         });
 ```
 
@@ -94,32 +92,60 @@ services
 Pipeline:
 
 ```plaintext
-+-----------------+   +----------------+   +-------------+   +-----------+   +----------------+   +-----------------+
-| Message Publish |-->| Publish Filter |-->| Send Filter |-->| Transport |-->| Consume Filter |-->| Message Handler |
-+-----------------+   +----------------+   +-------------+   +-----------+   +----------------+   +-----------------+
++-----------------+   +----------------+   +-----------+   +----------------+   +-----------------+
+| Message Publish |-->| Publish Filter |-->| Transport |-->| Consume Filter |-->| Message Handler |
++-----------------+   +----------------+   +-----------+   +----------------+   +-----------------+
 ```
 
-Three types of filters can be applied to the messaging pipeline:
+Two types of filters can be applied to the messaging pipeline:
 
 - `IPublishFilter`: Filters that are applied when a message is published.
-- `ISendFilter`: Filters that are applied after the published message has been serialized but before it is sent.
 - `IConsumeFilter`: Filters that are applied before the message is handled by the message handler.
 
-## Outbox
+## Transactional Outbox
 
-The outbox pattern is implemented using EF Core. The outbox is a table in the database that stores messages that have been published. The outbox is used to prevent duplicate messages from being sent when a message is published multiple times.
+The transactional outbox pattern is implemented using EF Core and consists of:
 
-Since the outbox is implemented as a `ISendFilter` to store published messages in the database, the outbox send filter must be added as the last send filter in the pipeline:
+- A scoped outbox that captures messages and adds them to the scoped DbContext.
+- A background service that polls the outbox and sends messages to the transport.
+- [OPTIONAL] A background service that removes processed messages from the outbox after a given retention period.
 
-```csharp
+There is also a trigger mechanism that forces the outbox to be processed as soon as possible. This is useful when you want to ensure that messages are sent immediately after the transaction is committed.
 
-The outbox is then polled periodically to send messages that have not been sent yet.
+Enabling the outbox is a two step process:
 
-The outbox can be configured using the `AddOutboxSendFilter` method:
+1. Add and configure the outbox using the `AddOutbox` extension method:
 
 ```csharp
 services
     .AddPigeon()
-        .AddSendFilter<MySendFilter>()
-        .AddOutboxSendFilter();
+        .AddOutbox();
+```
+
+2. Add the outbox to the DbContext:
+
+```csharp
+public class MyDbContext : DbContext
+{
+    public MyDbContext(DbContextOptions<MyDbContext> options) : base(options)
+    {
+    }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.AddOutboxMessageEntity(schemaName: "Application");
+    }
+}
+```
+
+Pipeline with outbox:
+
+```plaintext
++-----------------+   +----------------+   +-----------+
+| Message Publish |-->| Publish Filter |-->| Outbox    |
++-----------------+   +----------------+   +-----------+
+
++----------------+   +----------------+   +-----------------+
+| Outbox Service |-->| Consume Filter |-->| Message Handler |
++-------+--------+   +----------------+   +-----------------+
 ```
