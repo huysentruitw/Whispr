@@ -9,7 +9,7 @@ namespace Whispr.IntegrationTests.Tests;
 
 public sealed class IntegrationTests
 {
-    [Theory]
+    [Theory(Skip = "Requires Azure Service Bus connection string")]
     [InlineData(false)]
     [InlineData(true)]
     public async Task Given_MessageHandlerRegistered_When_MessagePublished_Then_MessageHandled(bool useOutbox)

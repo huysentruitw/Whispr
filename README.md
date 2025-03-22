@@ -1,5 +1,7 @@
 # Whispr Messaging Library
 
+[![Build, Test, Publish](https://github.com/huysentruitw/Whispr/actions/workflows/build-test-publish.yml/badge.svg?branch=main)](https://github.com/huysentruitw/Whispr/actions/workflows/build-test-publish.yml)
+
 A lightweight message bus implementation for Azure Service Bus with EF Core outbox.
 
 Supports .NET 8 with EF Core 8 and .NET 9 with EF Core 9.
