@@ -37,7 +37,7 @@ jobs:
     - name: Build
       run: dotnet build --configuration Release --no-restore /p:Version=${{ steps.gitversion.outputs.nuGetVersionV2 }}
     - name: Test
-      run: dotnet test --configuration Release --no-restore --no-build --verbosity normal --filter 'FullyQualifiedName!~IntegrationTests'
+      run: dotnet test --configuration Release --no-restore --no-build --verbosity normal
     - name: Publish
       if: github.ref == 'refs/heads/main' && github.repository_owner == 'huysentruitw'
       shell: pwsh

@@ -9,10 +9,10 @@
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
 
-    <OutputType>exe</OutputType>
-    <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
-    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
-    <DisableTestingPlatformServerCapability>false</DisableTestingPlatformServerCapability>
+<!--    <OutputType>exe</OutputType>-->
+<!--    <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>-->
+<!--    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>-->
+<!--    <DisableTestingPlatformServerCapability>false</DisableTestingPlatformServerCapability>-->
 
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <WarningsAsErrors/>
@@ -47,6 +47,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0"/>
     <PackageReference Include="xunit.v3" Version="1.1.0"/>
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.0.2" />
   </ItemGroup>
 
   <ItemGroup>
