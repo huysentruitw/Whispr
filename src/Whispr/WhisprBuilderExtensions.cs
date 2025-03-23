@@ -124,4 +124,19 @@ public static class WhisprBuilderExtensions
     }
 
     #endregion
+
+    #region Transport
+
+    /// <summary>
+    /// Adds the in-memory transport.
+    /// </summary>
+    /// <param name="builder">The <see cref="WhisprBuilder"/>.</param>
+    /// <returns>The <see cref="WhisprBuilder"/>.</returns>
+    public static WhisprBuilder AddInMemoryTransport(this WhisprBuilder builder)
+    {
+        builder.Services.AddSingleton<ITransport, InMemoryTransport>();
+        return builder;
+    }
+
+    #endregion
 }

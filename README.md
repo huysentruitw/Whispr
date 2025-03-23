@@ -2,7 +2,7 @@
 
 [![Build, Test, Publish](https://github.com/huysentruitw/Whispr/actions/workflows/build-test-publish.yml/badge.svg?branch=main)](https://github.com/huysentruitw/Whispr/actions/workflows/build-test-publish.yml)
 
-A lightweight message bus implementation for Azure Service Bus with EF Core outbox.
+⚡A lightweight message bus implementation for Azure Service Bus with EF Core outbox.
 
 Supports .NET 8 with EF Core 8 and .NET 9 with EF Core 9.
 
@@ -57,7 +57,19 @@ services
 
 ### In-memory
 
-_TODO_
+The in-memory transport is implemented in the base library and is used for testing purposes.
+
+⚠️ It is not recommended for production use, this is not a MediatR replacement.
+
+```csharp
+services
+    .AddWhispr()
+        .AddInMemoryTransport();
+```
+
+☝️It is possible to combine the in-memory transport with the transactional outbox.
+
+```csharp
 
 ### Azure Service Bus
 
