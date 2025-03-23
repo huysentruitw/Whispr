@@ -40,7 +40,7 @@ public sealed class MessageProcessorTests
 
         // Assert
         Assert.Equal(1, testHarness.Handler.HandleCallCount);
-        Assert.Equal(new[] { "Filter1", "Filter2" }, filterCallOrder);
+        Assert.Equal(["Filter1", "Filter2"], filterCallOrder);
     }
 
     [Fact]

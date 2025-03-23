@@ -45,7 +45,7 @@ public sealed class MessagePublisherTests
         await testHarness.Publisher.Publish(message, null, CancellationToken.None);
 
         // Assert
-        Assert.Equal(new[] { "Filter1", "Filter2" }, filterCallOrder);
+        Assert.Equal(["Filter1", "Filter2"], filterCallOrder);
     }
 
     [Fact]
@@ -81,8 +81,8 @@ public sealed class MessagePublisherTests
         // Act
         await testHarness.Publisher.Publish(message, options =>
         {
-            options.CorrelationId = correlationId;
-            options.DeferredUntil = deferredUntil;
+            options.Correlate(correlationId);
+            options.Defer(deferredUntil);
             options.Headers.Add("CustomHeader", "HeaderValue");
         }, CancellationToken.None);
 
