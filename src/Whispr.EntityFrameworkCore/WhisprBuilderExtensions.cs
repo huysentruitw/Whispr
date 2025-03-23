@@ -18,11 +18,13 @@ public static class WhisprBuilderExtensions
     /// <param name="optionsAction">The action to configure the <see cref="OutboxOptions"/>.</param>
     /// <typeparam name="TDbContext">The type of the <see cref="DbContext"/>.</typeparam>
     /// <returns>The <see cref="WhisprBuilder"/>.</returns>
-    public static WhisprBuilder AddOutbox<TDbContext>(this WhisprBuilder whisprBuilder, Action<OutboxOptions> optionsAction)
+    public static WhisprBuilder AddOutbox<TDbContext>(this WhisprBuilder whisprBuilder, Action<OutboxOptions>? optionsAction = null)
         where TDbContext : DbContext
     {
+        if (optionsAction is not null)
+            whisprBuilder.Services.Configure(optionsAction);
+
         whisprBuilder.Services
-            .Configure(optionsAction)
             .AddHostedService<OutboxProcessor<TDbContext>>()
             .AddSingleton<OutboxProcessorTrigger<TDbContext>>()
             .AddHostedService<OutboxCleanupService<TDbContext>>()

@@ -11,7 +11,7 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: ubuntu-22.04
 
     steps:
     - uses: actions/checkout@v4
@@ -37,6 +37,8 @@ jobs:
     - name: Build
       run: dotnet build --configuration Release --no-restore /p:Version=${{ steps.gitversion.outputs.nuGetVersionV2 }}
     - name: Test
+      env:
+        AzureServiceBus__ConnectionString: ${{ secrets.AZURESERVICEBUS__CONNECTIONSTRING }}
       run: dotnet test --configuration Release --no-restore --no-build --verbosity normal
     - name: Publish
       if: github.ref == 'refs/heads/main' && github.repository_owner == 'huysentruitw'
