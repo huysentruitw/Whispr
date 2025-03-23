@@ -93,10 +93,12 @@ services
 
 Pipeline:
 
-```plaintext
-+-----------------+   +----------------+   +-----------+   +----------------+   +-----------------+
-| Message Publish |-->| Publish Filter |-->| Transport |-->| Consume Filter |-->| Message Handler |
-+-----------------+   +----------------+   +-----------+   +----------------+   +-----------------+
+```mermaid
+flowchart LR
+    A[Message Publish] --> B[Publish Filter]
+    B --> C[Transport]
+    C --> D[Consume Filter]
+    D --> E[Message Handler]
 ```
 
 Two types of filters can be applied to the messaging pipeline:
@@ -152,12 +154,10 @@ public class MyDbContext : DbContext
 
 Pipeline with outbox:
 
-```plaintext
-+-----------------+   +----------------+   +-----------+
-| Message Publish |-->| Publish Filter |-->| Outbox    |
-+-----------------+   +----------------+   +-----------+
+```mermaid
+flowchart LR
+    A[Message Publish] --> B[Publish Filter] --> C[Outbox]
 
-+----------------+   +----------------+   +-----------------+
-| Outbox Service |-->| Consume Filter |-->| Message Handler |
-+-------+--------+   +----------------+   +-----------------+
+    D[Outbox Service] --> E[Consume Filter] --> F[Message Handler]
 ```
+
