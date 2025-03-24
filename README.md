@@ -69,8 +69,6 @@ services
 
 ☝️It is possible to combine the in-memory transport with the transactional outbox.
 
-```csharp
-
 ### Azure Service Bus
 
 The Azure Service Bus transport is implemented using the `Microsoft.Azure.ServiceBus` package. The transport can be configured using the `AddAzureServiceBusTransport` method:
@@ -172,4 +170,3 @@ flowchart LR
 
     D[Outbox Service] --> E[Consume Filter] --> F[Message Handler]
 ```
-
