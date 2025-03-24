@@ -6,7 +6,7 @@
 
 Supports .NET 8 with EF Core 8 and .NET 9 with EF Core 9.
 
-## Example usage
+## 🚀 Example usage
 
 ```csharp
 services
@@ -21,7 +21,7 @@ services
         .AddMessageHandlersFromAssembly(Assembly.GetExecutingAssembly());
 ```
 
-## Naming conventions
+## 🏷️ Naming conventions
 
 This library auto-generates topics and queues by using the given naming conventions. The default naming conventions are:
 
@@ -53,7 +53,7 @@ services
         .AddQueueNamingConvention<MyQueueNamingConvention>();
 ```
 
-## Transports
+## 🚌 Transports
 
 ### In-memory
 
@@ -101,7 +101,7 @@ services
         .AddSubscriptionNamingConvention<MySubscriptionNamingConvention>();
 ```
 
-## Filters
+## 🪄 Filters
 
 Pipeline:
 
@@ -118,7 +118,7 @@ Two types of filters can be applied to the messaging pipeline:
 - `IPublishFilter`: Filters that are applied when a message is published.
 - `IConsumeFilter`: Filters that are applied before the message is handled by the message handler.
 
-## Transactional Outbox
+## 📬 Transactional Outbox
 
 The transactional outbox pattern is implemented using EF Core and consists of:
 
