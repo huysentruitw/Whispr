@@ -48,8 +48,9 @@ internal sealed class OutboxCleanupService<TDbContext>(
                 .Where(x => x.ProcessedAtUtc < expiredUtc)
                 .Take(_batchSize)
                 .ExecuteDeleteAsync(cancellationToken);
-            
-            if(rowsDeleted != 0) logger.LogInformation("Deleted {RowsDeleted} outbox messages older than {RetentionPeriod}", rowsDeleted, _retentionPeriod);
+
+            if (rowsDeleted != 0)
+                logger.LogInformation("Deleted {RowsDeleted} outbox messages older than {RetentionPeriod}", rowsDeleted, _retentionPeriod);
 
             if (rowsDeleted < _batchSize)
                 break;
