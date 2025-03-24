@@ -44,15 +44,15 @@ internal sealed class OutboxCleanupService<TDbContext>(
         {
             var expiredUtc = DateTimeOffset.UtcNow - _retentionPeriod;
             var rowsDeleted = await dbContext.Set<OutboxMessage>()
-                .Take(_batchSize)
                 .OrderBy(x => x.ProcessedAtUtc)
                 .Where(x => x.ProcessedAtUtc < expiredUtc)
+                .Take(_batchSize)
                 .ExecuteDeleteAsync(cancellationToken);
+                
+            logger.LogInformation("Deleted {RowsDeleted} outbox messages older than {RetentionPeriod}", rowsDeleted, _retentionPeriod);
 
             if (rowsDeleted < _batchSize)
                 break;
-
-            logger.LogInformation("Deleted {RowsDeleted} outbox messages older than {RetentionPeriod}", rowsDeleted, _retentionPeriod);
 
             // Wait a bit before checking again to avoid hammering the database.
             await Task.Delay(100, cancellationToken);
