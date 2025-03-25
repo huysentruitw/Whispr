@@ -12,6 +12,5 @@ public interface IMessageHandler<TMessage>
     /// </summary>
     /// <param name="envelope">The message envelope.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns></returns>
     ValueTask Handle(Envelope<TMessage> envelope, CancellationToken cancellationToken);
 }

@@ -1,6 +1,4 @@
-﻿using Whispr.Filtering;
-
-namespace Whispr.Bus;
+﻿namespace Whispr.Bus;
 
 internal sealed class MessageProcessor<TMessageHandler, TMessage>(
     IEnumerable<IConsumeFilter> consumeFilters,
@@ -14,15 +12,15 @@ internal sealed class MessageProcessor<TMessageHandler, TMessage>(
             ?? throw new InvalidOperationException("Failed to deserialize message envelope");
 
         // Build the consuming pipeline
-        Func<Envelope<TMessage>, CancellationToken, ValueTask> first = handler.Handle;
+        Func<Envelope<TMessage>, CancellationToken, ValueTask> pipeline = handler.Handle;
         foreach (var publishFilter in consumeFilters.Reverse())
         {
-            var next = first;
-            first = (e, ct) => publishFilter.Consume(e, next, ct);
+            var next = pipeline;
+            pipeline = (e, ct) => publishFilter.Consume(e, next, ct);
         }
 
         // Execute the consuming pipeline
-        return first(envelope, cancellationToken);
+        return pipeline(envelope, cancellationToken);
     }
 }
 

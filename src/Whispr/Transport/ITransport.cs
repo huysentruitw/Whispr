@@ -11,7 +11,6 @@ public interface ITransport
     /// <param name="topicName">The name of the topic to send the message to.</param>
     /// <param name="envelope">The serialized message envelope.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns></returns>
     ValueTask Send(
         string topicName,
         SerializedEnvelope envelope,
@@ -24,7 +23,6 @@ public interface ITransport
     /// <param name="topicNames">The names of the topics to subscribe to.</param>
     /// <param name="messageCallback">The callback that is invoked when a message is received on the queue.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns></returns>
     ValueTask StartListener(
         string queueName,
         string[] topicNames,

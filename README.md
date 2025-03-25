@@ -101,20 +101,28 @@ services
 
 ## 🪄 Filters
 
-Pipeline:
+### Pipeline
 
 ```mermaid
 flowchart LR
-    A[Message Publish] --> B[Publish Filter]
-    B --> C[Transport]
-    C --> D[Consume Filter]
-    D --> E[Message Handler]
+    A[Message Publish] --> B[Publish Filters] --> C[Send Filters] --> D[Transport]
+    
+    E[Transport] --> F[Consume Filters] --> G[Message Handler]
 ```
 
 Two types of filters can be applied to the messaging pipeline:
 
 - `IPublishFilter`: Filters that are applied when a message is published.
+- `ISendFilter`: Filters that are applied before a message is sent to the transport.
 - `IConsumeFilter`: Filters that are applied before the message is handled by the message handler.
+
+### Dependecy injection
+
+Publish filters are executed from the same scope as from where the message is published.
+
+Send filters are executed from a temporary scope and have no access to the original scope. This is by design to have a similar behavior with or without the transactional outbox.
+
+Consume filters are executed from a temporary scope in which also the message handler is executed.
 
 ## 📬 Transactional Outbox
 
@@ -162,11 +170,13 @@ public class MyDbContext : DbContext
 }
 ```
 
-Pipeline with outbox:
+### Pipeline with outbox
 
 ```mermaid
 flowchart LR
-    A[Message Publish] --> B[Publish Filter] --> C[Outbox]
+    A[Message Publish] --> B[Publish Filters] --> C[Outbox]
 
-    D[Outbox Service] --> E[Consume Filter] --> F[Message Handler]
+    D[Outbox Processor] --> E[Send Filters] --> F[Transport]
+    
+    G[Transport] --> H[Consume Filters] --> I[Message Handler]
 ```

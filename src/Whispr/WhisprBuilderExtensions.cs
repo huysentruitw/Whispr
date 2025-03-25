@@ -1,8 +1,5 @@
 ﻿using System.Reflection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Whispr.Builder;
-using Whispr.Conventions;
-using Whispr.Filtering;
 
 namespace Whispr;
 
@@ -107,6 +104,19 @@ public static class WhisprBuilderExtensions
         where TFilter : class, IPublishFilter
     {
         builder.Services.AddScoped<IPublishFilter, TFilter>();
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds a send filter.
+    /// </summary>
+    /// <param name="builder">The <see cref="WhisprBuilder"/>.</param>
+    /// <typeparam name="TFilter">The type of the send filter.</typeparam>
+    /// <returns>The <see cref="WhisprBuilder"/>.</returns>
+    public static WhisprBuilder AddSendFilter<TFilter>(this WhisprBuilder builder)
+        where TFilter : class, ISendFilter
+    {
+        builder.Services.AddScoped<ISendFilter, TFilter>();
         return builder;
     }
 

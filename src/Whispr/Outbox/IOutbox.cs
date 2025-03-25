@@ -11,6 +11,5 @@ public interface IOutbox : IDisposable, IAsyncDisposable
     /// <param name="topicName">The name of the topic to send the message to.</param>
     /// <param name="envelope">The serialized message envelope.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns></returns>
     ValueTask Add(string topicName, SerializedEnvelope envelope, CancellationToken cancellationToken = default);
 }

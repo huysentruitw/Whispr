@@ -1,8 +1,6 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using Whispr.Bus;
+﻿using Whispr.Bus;
 using Whispr.Conventions;
 using Whispr.Transport;
-using System.Text.Json;
 using Whispr.Filtering;
 using Whispr.Outbox;
 
@@ -21,7 +19,7 @@ public sealed class MessagePublisherTests
         await testHarness.Publisher.Publish(message, null, CancellationToken.None);
 
         // Assert
-        testHarness.Transport.Verify(
+        testHarness.MessageSender.Verify(
             x => x.Send(
                 It.Is<string>(topic => topic == "topic-TestMessage"),
                 It.Is<SerializedEnvelope>(env =>
@@ -87,7 +85,7 @@ public sealed class MessagePublisherTests
         }, CancellationToken.None);
 
         // Assert
-        testHarness.Transport.Verify(
+        testHarness.MessageSender.Verify(
             x => x.Send(
                 It.IsAny<string>(),
                 It.Is<SerializedEnvelope>(env =>
@@ -101,39 +99,39 @@ public sealed class MessagePublisherTests
     {
         public static TestHarness Create(IEnumerable<IPublishFilter> filters)
         {
-            var transportMock = new Mock<ITransport>();
+            var messageSenderMock = new Mock<IMessageSender>();
             var topicNamingConvention = CreateTopicNamingConvention();
 
             var publisher = new MessagePublisher(
                 filters,
                 topicNamingConvention,
-                transportMock.Object);
+                messageSenderMock.Object);
 
-            return new TestHarness { Publisher = publisher, Transport = transportMock, Outbox = null };
+            return new TestHarness { Publisher = publisher, MessageSender = messageSenderMock, Outbox = null };
         }
 
         public static TestHarness CreateWithOutbox()
         {
-            var transportMock = new Mock<ITransport>();
+            var messageSenderMock = new Mock<IMessageSender>();
             var outboxMock = new Mock<IOutbox>();
             var topicNamingConvention = CreateTopicNamingConvention();
 
             var publisher = new MessagePublisher(
                 [],
                 topicNamingConvention,
-                transportMock.Object,
+                messageSenderMock.Object,
                 outboxMock.Object);
 
-            return new TestHarness { Publisher = publisher, Transport = transportMock, Outbox = outboxMock };
+            return new TestHarness { Publisher = publisher, MessageSender = messageSenderMock, Outbox = outboxMock };
         }
 
         public required MessagePublisher Publisher { get; internal init; }
-        public required Mock<ITransport> Transport { get; internal init; }
+        public required Mock<IMessageSender> MessageSender { get; internal init; }
         public Mock<IOutbox>? Outbox { get; internal init; }
 
         public void VerifyTransportNotUsed()
         {
-            Transport.Verify(
+            MessageSender.Verify(
                 x => x.Send(
                     It.IsAny<string>(),
                     It.IsAny<SerializedEnvelope>(),

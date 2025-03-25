@@ -1,7 +1,4 @@
-﻿using Whispr.Builder;
-using Whispr.Bus;
-
-namespace Whispr;
+﻿namespace Whispr;
 
 /// <summary>
 /// Service collection extensions.
@@ -17,6 +14,7 @@ public static class ServiceCollectionExtensions
     {
         services
             .AddSingleton<IMessageBusInitializer, MessageBusInitializer>()
+            .AddSingleton<IMessageSender, MessageSender>()
             .AddScoped<IMessagePublisher, MessagePublisher>()
             .AddScoped(typeof(MessageProcessor<,>));
 

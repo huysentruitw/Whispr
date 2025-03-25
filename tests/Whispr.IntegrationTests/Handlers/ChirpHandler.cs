@@ -1,5 +1,4 @@
 ﻿using System.Collections.Concurrent;
-using Whispr.IntegrationTests.Tests.Messages;
 
 namespace Whispr.IntegrationTests.Tests.Handlers;
 

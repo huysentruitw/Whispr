@@ -9,6 +9,5 @@ public interface IMessageBusInitializer
     /// Starts the message bus.
     /// </summary>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns></returns>
     ValueTask Start(CancellationToken cancellationToken = default);
 }

@@ -1,15 +1,10 @@
-﻿using Whispr.Conventions;
-using Whispr.Filtering;
-using Whispr.Outbox;
-using Whispr.Transport;
-
-namespace Whispr.Bus;
+﻿namespace Whispr.Bus;
 
 /// <inheritdoc />
 internal sealed class MessagePublisher(
     IEnumerable<IPublishFilter> publishFilters,
     ITopicNamingConvention topicNamingConvention,
-    ITransport transport,
+    IMessageSender sender,
     IOutbox? outbox = null) : IMessagePublisher
 {
     public ValueTask Publish<TMessage>(TMessage message, Action<PublishOptions>? configure, CancellationToken cancellationToken)
@@ -33,18 +28,18 @@ internal sealed class MessagePublisher(
         };
 
         // Build the publishing pipeline
-        Func<Envelope<TMessage>, CancellationToken, ValueTask> first = Send;
+        Func<Envelope<TMessage>, CancellationToken, ValueTask> pipeline = Publish;
         foreach (var publishFilter in publishFilters.Reverse())
         {
-            var next = first;
-            first = (e, ct) => publishFilter.Publish(e, next, ct);
+            var next = pipeline;
+            pipeline = (e, ct) => publishFilter.Publish(e, next, ct);
         }
 
         // Execute the publishing pipeline
-        return first(envelope, cancellationToken);
+        return pipeline(envelope, cancellationToken);
     }
 
-    private ValueTask Send<TMessage>(Envelope<TMessage> envelope, CancellationToken cancellationToken)
+    private ValueTask Publish<TMessage>(Envelope<TMessage> envelope, CancellationToken cancellationToken)
         where TMessage : class
     {
         var serializedEnvelope = new SerializedEnvelope
@@ -56,8 +51,8 @@ internal sealed class MessagePublisher(
             DeferredUntil = envelope.DeferredUntil,
         };
 
-        // When an outbox is available, we add the message to the outbox instead of sending it directly to the transport.
+        // When an outbox is available, we add the message to the outbox instead of sending it directly.
         return outbox?.Add(envelope.DestinationTopicName, serializedEnvelope, cancellationToken)
-            ?? transport.Send(envelope.DestinationTopicName, serializedEnvelope, cancellationToken);
+            ?? sender.Send(envelope.DestinationTopicName, serializedEnvelope, cancellationToken);
     }
 }

@@ -1,14 +1,14 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using Whispr.Bus;
 using Whispr.EntityFrameworkCore.Entities;
-using Whispr.Transport;
 
 namespace Whispr.EntityFrameworkCore.Processing;
 
 internal sealed class OutboxProcessor<TDbContext>(
     OutboxProcessorTrigger<TDbContext> trigger,
-    ITransport transport,
+    IMessageSender messageSender,
     IOptions<OutboxOptions> options,
     IServiceProvider serviceProvider) : BackgroundService
     where TDbContext : DbContext
@@ -53,7 +53,7 @@ internal sealed class OutboxProcessor<TDbContext>(
                 DeferredUntil = outboxMessage.DeferredUntil,
             };
 
-            await transport.Send(outboxMessage.DestinationTopicName, envelope, CancellationToken.None);
+            await messageSender.Send(outboxMessage.DestinationTopicName, envelope, CancellationToken.None);
         }
 
         if (_messageRetentionEnabled)

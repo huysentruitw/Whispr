@@ -1,7 +1,4 @@
-﻿using Whispr.Conventions;
-using Whispr.Transport;
-
-namespace Whispr.Bus;
+﻿namespace Whispr.Bus;
 
 /// <inheritdoc />
 internal sealed class MessageBusInitializer(
