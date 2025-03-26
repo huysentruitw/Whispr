@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Whispr.Bus;
 using Whispr.EntityFrameworkCore.Entities;
@@ -10,7 +11,8 @@ internal sealed class OutboxProcessor<TDbContext>(
     OutboxProcessorTrigger<TDbContext> trigger,
     IMessageSender messageSender,
     IOptions<OutboxOptions> options,
-    IServiceProvider serviceProvider) : BackgroundService
+    IServiceProvider serviceProvider,
+    ILogger<OutboxProcessor<TDbContext>> logger) : BackgroundService
     where TDbContext : DbContext
 {
     private readonly TimeSpan _queryDelay = options.Value.QueryDelay;
@@ -24,7 +26,18 @@ internal sealed class OutboxProcessor<TDbContext>(
         {
             await trigger.Wait(_queryDelay, stoppingToken);
 
-            await SendOutboxMessages(stoppingToken);
+            try
+            {
+                await SendOutboxMessages(stoppingToken);
+            }
+            catch (OperationCanceledException)
+            {
+                // Ignore cancellation exceptions
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "An error occurred while processing outbox messages");
+            }
         }
     }
 
@@ -42,32 +55,48 @@ internal sealed class OutboxProcessor<TDbContext>(
         if (outboxMessages.Length == 0)
             return;
 
-        foreach (var outboxMessage in outboxMessages)
-        {
-            var envelope = new SerializedEnvelope
-            {
-                Body = outboxMessage.Body,
-                MessageType = outboxMessage.MessageType,
-                MessageId = outboxMessage.MessageId,
-                CorrelationId = outboxMessage.CorrelationId,
-                DeferredUntil = outboxMessage.DeferredUntil,
-            };
+        var processedMessageIds = new List<long>();
 
-            await messageSender.Send(outboxMessage.DestinationTopicName, envelope, CancellationToken.None);
+        if (outboxMessages.Length == 1)
+        {
+            var messageId = await TrySendMessage(outboxMessages[0]);
+            if (messageId is not null)
+                processedMessageIds.Add(messageId.Value);
+        }
+        else
+        {
+            var sendTasks = outboxMessages.Select(TrySendMessage).ToArray();
+            var results = await Task.WhenAll(sendTasks);
+            processedMessageIds.AddRange(results.Where(x => x.HasValue).Select(x => x!.Value));
         }
 
         if (_messageRetentionEnabled)
         {
             var processedAtUtc = DateTimeOffset.UtcNow;
             await dbContext.Set<OutboxMessage>()
-                .Where(x => outboxMessages.Select(m => m.Id).Contains(x.Id))
+                .Where(x => processedMessageIds.Contains(x.Id))
                 .ExecuteUpdateAsync(x => x.SetProperty(m => m.ProcessedAtUtc, processedAtUtc), CancellationToken.None);
         }
         else
         {
             await dbContext.Set<OutboxMessage>()
-                .Where(x => outboxMessages.Select(m => m.Id).Contains(x.Id))
+                .Where(x => processedMessageIds.Contains(x.Id))
                 .ExecuteDeleteAsync(CancellationToken.None);
+        }
+    }
+
+    private async Task<long?> TrySendMessage(OutboxMessage outboxMessage)
+    {
+        try
+        {
+            var envelope = CreateSerializedEnvelope(outboxMessage);
+            await messageSender.Send(outboxMessage.DestinationTopicName, envelope, CancellationToken.None);
+            return outboxMessage.Id;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to send message with ID {MessageId} (Outbox ID {Id})", outboxMessage.MessageId, outboxMessage.Id);
+            return null;
         }
     }
 
@@ -89,5 +118,17 @@ internal sealed class OutboxProcessor<TDbContext>(
             throw new InvalidOperationException($"Table name not found for entity type: {typeof(TEntity).Name}");
 
         return schema is null ? $"[{tableName}]" : $"[{schema}].[{tableName}]";
+    }
+
+    private static SerializedEnvelope CreateSerializedEnvelope(OutboxMessage outboxMessage)
+    {
+        return new SerializedEnvelope
+        {
+            Body = outboxMessage.Body,
+            MessageType = outboxMessage.MessageType,
+            MessageId = outboxMessage.MessageId,
+            CorrelationId = outboxMessage.CorrelationId,
+            DeferredUntil = outboxMessage.DeferredUntil,
+        };
     }
 }
