@@ -1,6 +1,6 @@
 ﻿using Whispr.AzureServiceBus.Conventions;
 using Whispr.AzureServiceBus.Factories;
-using Whispr.Builder;
+using Whispr.AzureServiceBus.Transport;
 
 namespace Whispr.AzureServiceBus;
 
@@ -32,7 +32,7 @@ public static class WhisprBuilderExtensions
             .AddSingleton<EntityManager>()
             .AddSingleton<SenderFactory>()
             .AddSingleton<ProcessorFactory>()
-            .AddSingleton<ITransport, Transport>();
+            .AddSingleton<ITransport, ServiceBusTransport>();
 
         return builder;
     }

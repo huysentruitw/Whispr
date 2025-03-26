@@ -1,45 +1,12 @@
 ﻿using System.Text;
-using Whispr.AzureServiceBus.Conventions;
-using Whispr.AzureServiceBus.Factories;
 
-namespace Whispr.AzureServiceBus;
+namespace Whispr.AzureServiceBus.Transport;
 
 /// <inheritdoc />
-internal sealed class Transport(
-    SenderFactory senderFactory,
-    ProcessorFactory processorFactory,
-    EntityManager entityManager,
-    ISubscriptionNamingConvention subscriptionNamingConvention) : ITransport
+internal sealed partial class ServiceBusTransport
 {
-    private const string MessageTypePropertyName = "MessageType";
-
-    public async ValueTask Send(string topicName, SerializedEnvelope envelope, CancellationToken cancellationToken = default)
-    {
-        var sender = senderFactory.GetOrCreateSender(topicName);
-
-        var message = new ServiceBusMessage(envelope.Body)
-        {
-            ContentType = "application/json",
-            ApplicationProperties = { [MessageTypePropertyName] = envelope.MessageType },
-            MessageId = envelope.MessageId,
-            CorrelationId = envelope.CorrelationId,
-        };
-
-        if (envelope.DeferredUntil.HasValue)
-            message.ScheduledEnqueueTime = envelope.DeferredUntil.Value;
-
-        try
-        {
-            await sender.SendMessageAsync(message, cancellationToken);
-        }
-        catch (ServiceBusException ex) when(ex.Reason == ServiceBusFailureReason.MessagingEntityNotFound)
-        {
-            await entityManager.CreateTopicIfNotExists(topicName, cancellationToken);
-            await sender.SendMessageAsync(message, cancellationToken);
-        }
-    }
-
-    public async ValueTask StartListener(string queueName,
+    public async ValueTask StartListener(
+        string queueName,
         string[] topicNames,
         Func<SerializedEnvelope, CancellationToken, ValueTask> messageCallback,
         CancellationToken cancellationToken = default)
