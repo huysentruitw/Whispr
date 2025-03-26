@@ -142,6 +142,7 @@
         "type": "Project",
         "dependencies": {
           "Microsoft.Extensions.DependencyInjection.Abstractions": "[8.0.2, )",
+          "Microsoft.Extensions.Logging.Abstractions": "[8.0.2, )",
           "Microsoft.Extensions.Options": "[8.0.2, )"
         }
       }
@@ -289,6 +290,7 @@
         "type": "Project",
         "dependencies": {
           "Microsoft.Extensions.DependencyInjection.Abstractions": "[9.0.3, )",
+          "Microsoft.Extensions.Logging.Abstractions": "[9.0.3, )",
           "Microsoft.Extensions.Options": "[9.0.3, )"
         }
       }

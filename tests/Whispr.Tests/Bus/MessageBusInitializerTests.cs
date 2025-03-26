@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Whispr.Bus;
 using Whispr.Conventions;
 using Whispr.Tests.TestInfrastructure;
@@ -60,7 +61,8 @@ public sealed class MessageBusInitializerTests
                 CreateTopicNamingConvention(),
                 transportMock.Object,
                 serviceProvider,
-                new NoOpDiagnosticsEventListener());
+                new NoOpDiagnosticsEventListener(),
+                Mock.Of<ILogger<MessageBusInitializer>>());
 
             return new TestHarness { Initializer = initializer, Transport = transportMock };
         }

@@ -1,6 +1,7 @@
 ﻿global using System.Text.Json;
 
 global using Microsoft.Extensions.DependencyInjection;
+global using Microsoft.Extensions.Logging;
 
 global using Whispr.Builder;
 global using Whispr.Bus;
