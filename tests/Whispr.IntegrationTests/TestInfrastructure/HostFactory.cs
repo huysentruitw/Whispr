@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Hosting;
 
-namespace Whispr.IntegrationTests.Tests.TestHelpers;
+namespace Whispr.IntegrationTests.Tests.TestInfrastructure;
 
 public static class HostFactory
 {

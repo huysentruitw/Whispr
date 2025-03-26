@@ -1,6 +1,6 @@
 ﻿using Testcontainers.MsSql;
 
-namespace Whispr.IntegrationTests.Tests.TestHelpers;
+namespace Whispr.IntegrationTests.Tests.TestInfrastructure;
 
 public sealed class SqlServerFixture : IAsyncLifetime
 {

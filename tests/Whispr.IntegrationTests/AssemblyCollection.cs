@@ -1,3 +1,3 @@
-﻿using Whispr.IntegrationTests.Tests.TestHelpers;
+﻿using Whispr.IntegrationTests.Tests.TestInfrastructure;
 
 [assembly: AssemblyFixture(typeof(SqlServerFixture))]

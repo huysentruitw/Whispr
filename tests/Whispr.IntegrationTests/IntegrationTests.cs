@@ -1,5 +1,5 @@
 using Microsoft.Extensions.Hosting;
-using Whispr.IntegrationTests.Tests.TestHelpers;
+using Whispr.IntegrationTests.Tests.TestInfrastructure;
 
 namespace Whispr.IntegrationTests.Tests;
 
