@@ -5,6 +5,7 @@ internal sealed class MessagePublisher(
     IEnumerable<IPublishFilter> publishFilters,
     ITopicNamingConvention topicNamingConvention,
     IMessageSender sender,
+    IDiagnosticEventListener diagnosticEventListener,
     IOutbox? outbox = null) : IMessagePublisher
 {
     public ValueTask Publish<TMessage>(TMessage message, Action<PublishOptions>? configure, CancellationToken cancellationToken)
@@ -12,6 +13,8 @@ internal sealed class MessagePublisher(
     {
         var messageType = message.GetType().FullName
             ?? throw new InvalidOperationException("Message type must have a full name");
+
+        using var _ = diagnosticEventListener.Publish();
 
         var options = new PublishOptions();
         configure?.Invoke(options);

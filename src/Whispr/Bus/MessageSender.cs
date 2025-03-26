@@ -2,10 +2,13 @@
 
 internal sealed class MessageSender(
     IServiceProvider serviceProvider,
-    ITransport transport) : IMessageSender
+    ITransport transport,
+    IDiagnosticEventListener diagnosticEventListener) : IMessageSender
 {
     public ValueTask Send(string topicName, SerializedEnvelope envelope, CancellationToken cancellationToken)
     {
+        using var _ = diagnosticEventListener.Send();
+
         using var scope = serviceProvider.CreateScope();
         var sendFilters = scope.ServiceProvider.GetServices<ISendFilter>().ToArray();
 

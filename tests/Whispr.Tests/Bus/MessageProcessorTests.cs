@@ -1,6 +1,7 @@
 ﻿using Whispr.Bus;
 using System.Text.Json;
 using Whispr.Filtering;
+using Whispr.Tests.TestInfrastructure;
 
 namespace Whispr.Tests.Bus;
 
@@ -94,7 +95,7 @@ public sealed class MessageProcessorTests
         public static TestHarness<THandler, TMessage> Create(IEnumerable<IConsumeFilter> filters)
         {
             var handler = new THandler();
-            var processor = new MessageProcessor<THandler, TMessage>(filters, handler);
+            var processor = new MessageProcessor<THandler, TMessage>(filters, handler, new NoOpDiagnosticsEventListener());
 
             return new TestHarness<THandler, TMessage>
             {

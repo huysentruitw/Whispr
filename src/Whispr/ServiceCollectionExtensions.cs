@@ -14,6 +14,7 @@ public static class ServiceCollectionExtensions
     {
         services
             .AddSingleton<IMessageBusInitializer, MessageBusInitializer>()
+            .AddSingleton<IDiagnosticEventListener, ActivityDiagnosticEventListener>()
             .AddSingleton<IMessageSender, MessageSender>()
             .AddScoped<IMessagePublisher, MessagePublisher>()
             .AddScoped(typeof(MessageProcessor<,>));

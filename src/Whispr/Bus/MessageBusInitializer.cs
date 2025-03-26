@@ -6,13 +6,16 @@ internal sealed class MessageBusInitializer(
     IQueueNamingConvention queueNamingConvention,
     ITopicNamingConvention topicNamingConvention,
     ITransport transport,
-    IServiceProvider serviceProvider) : IMessageBusInitializer
+    IServiceProvider serviceProvider,
+    IDiagnosticEventListener diagnosticEventListener) : IMessageBusInitializer
 {
     public ValueTask Start(CancellationToken cancellationToken = default)
         => StartListeners(cancellationToken);
 
     private async ValueTask StartListeners(CancellationToken cancellationToken = default)
     {
+        using var _ = diagnosticEventListener.Start();
+
         var tasks = messageHandlerDescriptors
             .Select(descriptor =>
             {
@@ -30,7 +33,7 @@ internal sealed class MessageBusInitializer(
         CancellationToken cancellationToken = default)
     {
         var messageType = descriptor.MessageTypes.SingleOrDefault(type => type.FullName == serializedEnvelope.MessageType)
-                          ?? throw new InvalidOperationException($"Handler: {descriptor.HandlerType} doesn't support message type: {serializedEnvelope.MessageType}");
+            ?? throw new InvalidOperationException($"Handler: {descriptor.HandlerType} doesn't support message type: {serializedEnvelope.MessageType}");
 
         var messageProcessorType = typeof(MessageProcessor<,>).MakeGenericType(descriptor.HandlerType, messageType);
 

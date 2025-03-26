@@ -1,8 +1,8 @@
 ﻿using Whispr.Bus;
 using Whispr.Conventions;
-using Whispr.Transport;
 using Whispr.Filtering;
 using Whispr.Outbox;
+using Whispr.Tests.TestInfrastructure;
 
 namespace Whispr.Tests.Bus;
 
@@ -105,7 +105,8 @@ public sealed class MessagePublisherTests
             var publisher = new MessagePublisher(
                 filters,
                 topicNamingConvention,
-                messageSenderMock.Object);
+                messageSenderMock.Object,
+                diagnosticEventListener: new NoOpDiagnosticsEventListener());
 
             return new TestHarness { Publisher = publisher, MessageSender = messageSenderMock, Outbox = null };
         }
@@ -120,7 +121,8 @@ public sealed class MessagePublisherTests
                 [],
                 topicNamingConvention,
                 messageSenderMock.Object,
-                outboxMock.Object);
+                outbox: outboxMock.Object,
+                diagnosticEventListener: new NoOpDiagnosticsEventListener());
 
             return new TestHarness { Publisher = publisher, MessageSender = messageSenderMock, Outbox = outboxMock };
         }
