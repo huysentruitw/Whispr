@@ -31,7 +31,18 @@ internal sealed class OutboxCleanupService<TDbContext>(
         {
             await Task.Delay(_cleanupDelay, stoppingToken);
 
-            await CleanupOutboxMessages(stoppingToken);
+            try
+            {
+                await CleanupOutboxMessages(stoppingToken);
+            }
+            catch (OperationCanceledException)
+            {
+                // Ignore cancellation exceptions
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "An error occurred while cleaning up outbox messages");
+            }
         }
     }
 
@@ -40,7 +51,7 @@ internal sealed class OutboxCleanupService<TDbContext>(
         await using var scope = serviceProvider.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<TDbContext>();
 
-        while (true)
+        while (!cancellationToken.IsCancellationRequested)
         {
             var expiredUtc = DateTimeOffset.UtcNow - _retentionPeriod;
             var rowsDeleted = await dbContext.Set<OutboxMessage>()
