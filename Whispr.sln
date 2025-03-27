@@ -20,6 +20,14 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		.github\workflows\build-test-publish.yml = .github\workflows\build-test-publish.yml
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "1. Core", "1. Core", "{E5AADD71-726D-4662-812A-BC0BA0C468F8}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "2. Transport", "2. Transport", "{42FA3AE0-23DA-4F6C-B262-C9F621E55669}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "3. Outbox", "3. Outbox", "{18DCA85D-9B10-41F5-BBDD-F579B8B126D6}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "9. Integration Tests", "9. Integration Tests", "{64D687B3-5AB4-45B3-9A8A-2F383EB5B608}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -49,5 +57,12 @@ Global
 		{21C8719A-AA2D-4419-A6E3-53AB634E3C93}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{21C8719A-AA2D-4419-A6E3-53AB634E3C93}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{21C8719A-AA2D-4419-A6E3-53AB634E3C93}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{3E3E668E-726B-4556-A367-2C501C5C6290} = {E5AADD71-726D-4662-812A-BC0BA0C468F8}
+		{65D0F32A-E6DA-45E3-AA15-266E137C9A9B} = {E5AADD71-726D-4662-812A-BC0BA0C468F8}
+		{0920EE72-1F4E-49F6-A191-B9434DF76C25} = {42FA3AE0-23DA-4F6C-B262-C9F621E55669}
+		{BD1BB54E-7488-4776-AF07-AE25ACD5825C} = {18DCA85D-9B10-41F5-BBDD-F579B8B126D6}
+		{21C8719A-AA2D-4419-A6E3-53AB634E3C93} = {64D687B3-5AB4-45B3-9A8A-2F383EB5B608}
 	EndGlobalSection
 EndGlobal
