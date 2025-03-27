@@ -1,4 +1,5 @@
-﻿using Whispr.AzureServiceBus.Conventions;
+﻿using Azure.Identity;
+using Whispr.AzureServiceBus.Conventions;
 using Whispr.AzureServiceBus.Factories;
 using Whispr.AzureServiceBus.Transport;
 
@@ -22,12 +23,28 @@ public static class WhisprBuilderExtensions
             .AddSingleton<ServiceBusClient>(serviceProvider =>
             {
                 var options = serviceProvider.GetRequiredService<IOptions<AzureServiceBusOptions>>().Value;
-                return new ServiceBusClient(options.ConnectionString);
+        
+                if (!string.IsNullOrEmpty(options.HostAddress))
+                {
+                    return new ServiceBusClient(
+                        options.HostAddress,
+                        new DefaultAzureCredential());
+                }
+        
+                return new ServiceBusClient(options.ConnectionString!);
             })
             .AddSingleton<ServiceBusAdministrationClient>(serviceProvider =>
             {
                 var options = serviceProvider.GetRequiredService<IOptions<AzureServiceBusOptions>>().Value;
-                return new ServiceBusAdministrationClient(options.ConnectionString);
+        
+                if (!string.IsNullOrEmpty(options.HostAddress))
+                {
+                    return new ServiceBusAdministrationClient(
+                        options.HostAddress,
+                        new DefaultAzureCredential());
+                }
+        
+                return new ServiceBusAdministrationClient(options.ConnectionString!);
             })
             .AddSingleton<EntityManager>()
             .AddSingleton<SenderFactory>()

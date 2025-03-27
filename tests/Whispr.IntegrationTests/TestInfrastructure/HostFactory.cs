@@ -8,38 +8,46 @@ public static class HostFactory
     {
         var configuration = new ConfigurationBuilder()
             .AddJsonFile("appsettings.json")
-            .AddUserSecrets<IntegrationTests>()
+            .AddUserSecrets<Tests.IntegrationTests>()
             .AddEnvironmentVariables()
             .Build();
 
         var host = Host.CreateDefaultBuilder()
             .ConfigureAppConfiguration(x => x.AddConfiguration(configuration))
-            .ConfigureServices(services =>
-            {
-                services
-                    .AddDbContext<DataContext>(options =>
-                    {
-                        options.UseSqlServer(sqlConnectionString);
-                    });
+            .ConfigureServices(
+                services =>
+                {
+                    services
+                        .AddDbContext<DataContext>(
+                            options =>
+                            {
+                                options.UseSqlServer(sqlConnectionString);
+                            });
 
-                var builder = services
-                    .AddWhispr()
-                    .AddAzureServiceBusTransport(options =>
-                    {
-                        options.ConnectionString =
-                            configuration.GetValue<string>("AzureServiceBus:ConnectionString")
-                            ?? throw new InvalidOperationException("AzureServiceBus:ConnectionString is required");
-                    })
-                    .AddTopicNamingConvention<TopicNamingConvention>()
-                    .AddQueueNamingConvention<QueueNamingConvention>()
-                    .AddSubscriptionNamingConvention<SubscriptionNamingConvention>()
-                    .AddMessageHandlersFromAssembly(Assembly.GetExecutingAssembly())
-                    .AddPublishFilter<FirstPublishFilter>()
-                    .AddPublishFilter<SecondPublishFilter>();
+                    var builder = services
+                        .AddWhispr()
+                        .AddAzureServiceBusTransport(
+                            options =>
+                            {
+                                var connectionString = configuration.GetValue<string>("AzureServiceBus:ConnectionString");
+                                var hostAddress = configuration.GetValue<string>("AzureServiceBus:HostAddress");
 
-                if (useOutbox)
-                    builder.AddOutbox<DataContext>();
-            })
+                                if (string.IsNullOrEmpty(hostAddress) && string.IsNullOrEmpty(connectionString))
+                                    throw new InvalidOperationException("Either AzureServiceBus:ConnectionString or AzureServiceBus:HostAddress is required");
+
+                                options.ConnectionString = connectionString;
+                                options.HostAddress = hostAddress;
+                            })
+                        .AddTopicNamingConvention<TopicNamingConvention>()
+                        .AddQueueNamingConvention<QueueNamingConvention>()
+                        .AddSubscriptionNamingConvention<SubscriptionNamingConvention>()
+                        .AddMessageHandlersFromAssembly(Assembly.GetExecutingAssembly())
+                        .AddPublishFilter<FirstPublishFilter>()
+                        .AddPublishFilter<SecondPublishFilter>();
+
+                    if (useOutbox)
+                        builder.AddOutbox<DataContext>();
+                })
             .Build();
 
         await RecreateDatabase(host.Services);
