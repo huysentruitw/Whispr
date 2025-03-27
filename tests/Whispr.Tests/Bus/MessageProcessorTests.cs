@@ -13,7 +13,7 @@ public sealed class MessageProcessorTests
         // Arrange
         var testHarness = TestHarness<TestHandler, TestMessage>.Create([]);
         var message = new TestMessage("Test");
-        var serializedEnvelope = CreateSerializedEnvelope(message);
+        var serializedEnvelope = SerializedEnvelopeFactory.Create(message);
 
         // Act
         await testHarness.Processor.Process(serializedEnvelope, CancellationToken.None);
@@ -34,7 +34,7 @@ public sealed class MessageProcessorTests
         var testHarness = TestHarness<TestHandler, TestMessage>.Create([filter1, filter2]);
 
         var message = new TestMessage("Test");
-        var serializedEnvelope = CreateSerializedEnvelope(message);
+        var serializedEnvelope = SerializedEnvelopeFactory.Create(message);
 
         // Act
         await testHarness.Processor.Process(serializedEnvelope, CancellationToken.None);
@@ -62,30 +62,6 @@ public sealed class MessageProcessorTests
         // Act & Assert
         await Assert.ThrowsAsync<JsonException>(() =>
             testHarness.Processor.Process(serializedEnvelope, CancellationToken.None).AsTask());
-    }
-
-    private static SerializedEnvelope CreateSerializedEnvelope<TMessage>(TMessage message)
-        where TMessage : class
-    {
-        var envelope = new Envelope<TMessage>
-        {
-            MessageId = Guid.NewGuid().ToString("N"),
-            Message = message,
-            MessageType = typeof(TMessage).FullName!,
-            Headers = [],
-            DestinationTopicName = "topic-abc",
-            CorrelationId = Guid.NewGuid().ToString("N"),
-            DeferredUntil = null,
-        };
-
-        return new SerializedEnvelope
-        {
-            Body = JsonSerializer.Serialize(envelope),
-            MessageType = envelope.MessageType,
-            MessageId = envelope.MessageId,
-            CorrelationId = envelope.CorrelationId,
-            DeferredUntil = envelope.DeferredUntil,
-        };
     }
 
     private sealed class TestHarness<THandler, TMessage>
