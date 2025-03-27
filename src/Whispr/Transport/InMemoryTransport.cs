@@ -2,7 +2,7 @@
 
 namespace Whispr.Transport;
 
-internal sealed class InMemoryTransport : ITransport
+internal sealed class InMemoryTransport(ILogger<InMemoryTransport> logger) : ITransport
 {
     private readonly ConcurrentDictionary<string, List<Func<SerializedEnvelope, CancellationToken, ValueTask>>> _listeners = new();
 
@@ -33,7 +33,20 @@ internal sealed class InMemoryTransport : ITransport
             async () =>
             {
                 foreach (var callback in callbacks)
-                    await callback(envelope, cancellationToken);
+                {
+                    try
+                    {
+                        await callback(envelope, cancellationToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(
+                            ex,
+                            "Failed to process message with ID {MessageId} and correlation ID {CorrelationId}",
+                            envelope.MessageId,
+                            envelope.CorrelationId);
+                    }
+                }
             },
             CancellationToken.None);
 
