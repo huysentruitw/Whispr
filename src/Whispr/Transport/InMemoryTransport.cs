@@ -23,12 +23,20 @@ internal sealed class InMemoryTransport : ITransport
         return ValueTask.CompletedTask;
     }
 
-    public async ValueTask Send(string topicName, SerializedEnvelope envelope, CancellationToken cancellationToken = default)
+    public ValueTask Send(string topicName, SerializedEnvelope envelope, CancellationToken cancellationToken = default)
     {
         if (!_listeners.TryGetValue(topicName, out var callbacks))
-            return; // No listeners for this topic
+            return ValueTask.CompletedTask; // No listeners for this topic
 
-        foreach (var callback in callbacks)
-            await callback(envelope, cancellationToken);
+        // Execute callbacks from a fire-and-forget task to simulate async message bus behavior
+        _ = Task.Run(
+            async () =>
+            {
+                foreach (var callback in callbacks)
+                    await callback(envelope, cancellationToken);
+            },
+            CancellationToken.None);
+
+        return ValueTask.CompletedTask;
     }
 }
