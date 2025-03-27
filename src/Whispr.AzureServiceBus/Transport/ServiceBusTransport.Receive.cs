@@ -68,10 +68,36 @@ internal sealed partial class ServiceBusTransport
                 args.Message.MessageId,
                 args.Message.CorrelationId);
 
+            var exceptionDetails = GetExceptionDetails(ex);
+            await args.AbandonMessageAsync(args.Message, exceptionDetails, cancellationToken);
+
             throw new InvalidOperationException($"Failed to process message with correlation ID: {args.Message.CorrelationId}", ex);
         }
 
         await args.CompleteMessageAsync(args.Message, cancellationToken);
+    }
+
+    private static IDictionary<string, object> GetExceptionDetails(Exception exception)
+    {
+        return new Dictionary<string, object>
+        {
+            { "ExceptionType", exception.GetType().Name },
+            { "ExceptionMessage", exception.Message },
+            { "StackTrace", GetStackTrace(exception) },
+        };
+
+        string GetStackTrace(Exception ex)
+        {
+            // Official max is 32KB, so 16K-unicode chars (see https://learn.microsoft.com/en-us/azure/service-bus-messaging/service-bus-quotas)
+            const int maxStackTraceLength = 4_000;
+
+            if (string.IsNullOrWhiteSpace(ex.StackTrace))
+                return string.Empty;
+
+            return ex.StackTrace.Length > maxStackTraceLength
+                ? ex.StackTrace[..maxStackTraceLength]
+                : ex.StackTrace;
+        }
     }
 
     private Task ProcessError(ProcessErrorEventArgs args, CancellationToken cancellationToken)
