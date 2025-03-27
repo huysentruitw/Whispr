@@ -2,11 +2,16 @@
 
 namespace Whispr.Transport;
 
-internal sealed class InMemoryTransport : ITransport
+internal sealed class InMemoryTransport(ILogger<InMemoryTransport> logger) : ITransport
 {
-    private readonly ConcurrentDictionary<string, List<Func<SerializedEnvelope, CancellationToken, ValueTask>>> _listeners = new();
+    private readonly ConcurrentDictionary<string, List<Func<SerializedEnvelope, CancellationToken, ValueTask>>>
+        _listeners = new ConcurrentDictionary<string, List<Func<SerializedEnvelope, CancellationToken, ValueTask>>>();
 
-    public ValueTask StartListener(string queueName, string[] topicNames, Func<SerializedEnvelope, CancellationToken, ValueTask> messageCallback, CancellationToken cancellationToken = default)
+    public ValueTask StartListener(
+        string queueName,
+        string[] topicNames,
+        Func<SerializedEnvelope, CancellationToken, ValueTask> messageCallback,
+        CancellationToken cancellationToken = default)
     {
         foreach (var topicName in topicNames)
         {
@@ -23,12 +28,36 @@ internal sealed class InMemoryTransport : ITransport
         return ValueTask.CompletedTask;
     }
 
-    public async ValueTask Send(string topicName, SerializedEnvelope envelope, CancellationToken cancellationToken = default)
+    public ValueTask Send(string topicName, SerializedEnvelope envelope, CancellationToken cancellationToken = default)
     {
-        if (!_listeners.TryGetValue(topicName, out var callbacks))
-            return; // No listeners for this topic
+        if (!_listeners.TryGetValue(topicName, out var callbacks) || callbacks.Count == 0)
+            return ValueTask.CompletedTask;
 
         foreach (var callback in callbacks)
-            await callback(envelope, cancellationToken);
+        {
+            FireAndForgetCallback(callback, envelope, cancellationToken);
+        }
+
+        return ValueTask.CompletedTask;
+    }
+
+    private void FireAndForgetCallback(
+        Func<SerializedEnvelope, CancellationToken, ValueTask> callback,
+        SerializedEnvelope envelope,
+        CancellationToken cancellationToken)
+    {
+        Task.Run(
+            async () =>
+            {
+                try
+                {
+                    await callback(envelope, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Error in message handler");
+                }
+            },
+            cancellationToken);
     }
 }
