@@ -18,8 +18,8 @@ services
             
             // OR
             
-            // Option 2: Use host address with managed identity authentication
-            options.HostAddress = "your-namespace.servicebus.windows.net";
+            // Option 2: Use host name with managed identity authentication
+            options.HostName = "your-namespace.servicebus.windows.net";
         })
         .AddTopicNamingConvention<DefaultTopicNamingConvention>()
         .AddQueueNamingConvention<DefaultQueueNamingConvention>()

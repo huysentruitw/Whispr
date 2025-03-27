@@ -23,28 +23,26 @@ public static class WhisprBuilderExtensions
             .AddSingleton<ServiceBusClient>(serviceProvider =>
             {
                 var options = serviceProvider.GetRequiredService<IOptions<AzureServiceBusOptions>>().Value;
-        
-                if (!string.IsNullOrEmpty(options.HostAddress))
-                {
-                    return new ServiceBusClient(
-                        options.HostAddress,
-                        new DefaultAzureCredential());
-                }
-        
-                return new ServiceBusClient(options.ConnectionString!);
+
+                if (!string.IsNullOrEmpty(options.HostName))
+                    return new ServiceBusClient(options.HostName, new DefaultAzureCredential());
+
+                if (!string.IsNullOrEmpty(options.ConnectionString))
+                    return new ServiceBusClient(options.ConnectionString);
+
+                throw new InvalidOperationException("Either HostName or ConnectionString must be provided.");
             })
             .AddSingleton<ServiceBusAdministrationClient>(serviceProvider =>
             {
                 var options = serviceProvider.GetRequiredService<IOptions<AzureServiceBusOptions>>().Value;
-        
-                if (!string.IsNullOrEmpty(options.HostAddress))
-                {
-                    return new ServiceBusAdministrationClient(
-                        options.HostAddress,
-                        new DefaultAzureCredential());
-                }
-        
-                return new ServiceBusAdministrationClient(options.ConnectionString!);
+
+                if (!string.IsNullOrEmpty(options.HostName))
+                    return new ServiceBusAdministrationClient(options.HostName, new DefaultAzureCredential());
+
+                if (!string.IsNullOrEmpty(options.ConnectionString))
+                    return new ServiceBusAdministrationClient(options.ConnectionString);
+
+                throw new InvalidOperationException("Either HostName or ConnectionString must be provided.");
             })
             .AddSingleton<EntityManager>()
             .AddSingleton<SenderFactory>()

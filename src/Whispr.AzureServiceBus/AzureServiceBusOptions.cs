@@ -11,7 +11,7 @@ public sealed record AzureServiceBusOptions
     public string? ConnectionString { get; set; } = null!;
 
     /// <summary>
-    /// The host address of the Azure Service Bus to used with managed identity.
+    /// The host name of the Azure Service Bus to used with managed identity.
     /// </summary>
-    public string? HostAddress { get; set; } = null!;
+    public string? HostName { get; set; } = null!;
 }

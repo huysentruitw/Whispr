@@ -29,14 +29,8 @@ public static class HostFactory
                         .AddAzureServiceBusTransport(
                             options =>
                             {
-                                var connectionString = configuration.GetValue<string>("AzureServiceBus:ConnectionString");
-                                var hostAddress = configuration.GetValue<string>("AzureServiceBus:HostAddress");
-
-                                if (string.IsNullOrEmpty(hostAddress) && string.IsNullOrEmpty(connectionString))
-                                    throw new InvalidOperationException("Either AzureServiceBus:ConnectionString or AzureServiceBus:HostAddress is required");
-
-                                options.ConnectionString = connectionString;
-                                options.HostAddress = hostAddress;
+                                options.ConnectionString = configuration.GetValue<string>("AzureServiceBus:ConnectionString");
+                                options.HostName = configuration.GetValue<string>("AzureServiceBus:HostName");
                             })
                         .AddTopicNamingConvention<TopicNamingConvention>()
                         .AddQueueNamingConvention<QueueNamingConvention>()
