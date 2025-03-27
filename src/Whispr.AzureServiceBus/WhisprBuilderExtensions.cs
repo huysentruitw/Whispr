@@ -25,7 +25,7 @@ public static class WhisprBuilderExtensions
                 var options = serviceProvider.GetRequiredService<IOptions<AzureServiceBusOptions>>().Value;
 
                 if (!string.IsNullOrEmpty(options.HostName))
-                    return new ServiceBusClient(options.HostName, new DefaultAzureCredential());
+                    return new ServiceBusClient(options.HostName, options.TokenCredential ?? new DefaultAzureCredential());
 
                 if (!string.IsNullOrEmpty(options.ConnectionString))
                     return new ServiceBusClient(options.ConnectionString);
@@ -37,7 +37,7 @@ public static class WhisprBuilderExtensions
                 var options = serviceProvider.GetRequiredService<IOptions<AzureServiceBusOptions>>().Value;
 
                 if (!string.IsNullOrEmpty(options.HostName))
-                    return new ServiceBusAdministrationClient(options.HostName, new DefaultAzureCredential());
+                    return new ServiceBusAdministrationClient(options.HostName, options.TokenCredential ?? new DefaultAzureCredential());
 
                 if (!string.IsNullOrEmpty(options.ConnectionString))
                     return new ServiceBusAdministrationClient(options.ConnectionString);

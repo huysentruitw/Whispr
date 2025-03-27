@@ -14,4 +14,11 @@ public sealed record AzureServiceBusOptions
     /// The host name of the Azure Service Bus to used with managed identity.
     /// </summary>
     public string? HostName { get; set; } = null!;
+
+    /// <summary>
+    /// The token credential to use for managed identity authentication.
+    /// This is used when <see cref="HostName"/> is set.
+    /// When not set, the default Azure credential is used.
+    /// </summary>
+    public TokenCredential? TokenCredential { get; set; } = null!;
 }
