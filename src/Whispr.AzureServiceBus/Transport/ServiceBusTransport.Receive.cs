@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using Microsoft.Extensions.Logging;
 
 namespace Whispr.AzureServiceBus.Transport;
 
@@ -27,7 +28,7 @@ internal sealed partial class ServiceBusTransport
         await processor.StartProcessingAsync(cancellationToken);
     }
 
-    private static async Task ProcessMessage(
+    private async Task ProcessMessage(
         ProcessMessageEventArgs args,
         Func<SerializedEnvelope, CancellationToken, ValueTask> messageCallback,
         CancellationToken cancellationToken)
@@ -61,14 +62,26 @@ internal sealed partial class ServiceBusTransport
         }
         catch (Exception ex)
         {
+            logger.LogError(
+                ex,
+                "Failed to process message with ID {MessageId} and correlation ID {CorrelationId}",
+                args.Message.MessageId,
+                args.Message.CorrelationId);
+
             throw new InvalidOperationException($"Failed to process message with correlation ID: {args.Message.CorrelationId}", ex);
         }
 
         await args.CompleteMessageAsync(args.Message, cancellationToken);
     }
 
-    private static Task ProcessError(ProcessErrorEventArgs args, CancellationToken cancellationToken)
+    private Task ProcessError(ProcessErrorEventArgs args, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        logger.LogError(
+            args.Exception,
+            "Error processing message from queue {QueueName}: {ErrorMessage}",
+            args.FullyQualifiedNamespace,
+            args.Exception.Message);
+
+        return Task.CompletedTask;
     }
 }

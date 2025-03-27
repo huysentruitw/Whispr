@@ -1,4 +1,6 @@
-﻿namespace Whispr.AzureServiceBus.Transport;
+﻿using Microsoft.Extensions.Logging;
+
+namespace Whispr.AzureServiceBus.Transport;
 
 /// <inheritdoc />
 internal sealed partial class ServiceBusTransport
@@ -14,6 +16,7 @@ internal sealed partial class ServiceBusTransport
         }
         catch (ServiceBusException ex) when(ex.Reason == ServiceBusFailureReason.MessagingEntityNotFound)
         {
+            logger.LogInformation("Creating topic {TopicName} because it does not exist", topicName);
             await entityManager.CreateTopicIfNotExists(topicName, cancellationToken);
 
             // Retry sending the message after creating the topic
