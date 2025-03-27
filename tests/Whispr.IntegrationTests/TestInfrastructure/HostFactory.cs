@@ -8,7 +8,7 @@ public static class HostFactory
     {
         var configuration = new ConfigurationBuilder()
             .AddJsonFile("appsettings.json")
-            .AddUserSecrets<Tests.IntegrationTests>()
+            .AddUserSecrets<IntegrationTests>()
             .AddEnvironmentVariables()
             .Build();
 
