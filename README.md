@@ -13,7 +13,13 @@ services
     .AddWhispr()
         .AddAzureServiceBusTransport(options =>
         {
-            options.ConnectionString = "...";
+            // Option 1: Use connection string authentication
+            options.ConnectionString = "Endpoint=sb://your-namespace.servicebus.windows.net/;SharedAccessKeyName=...;SharedAccessKey=...";
+            
+            // OR
+            
+            // Option 2: Use host address with managed identity authentication
+            options.HostAddress = "your-namespace.servicebus.windows.net";
         })
         .AddTopicNamingConvention<DefaultTopicNamingConvention>()
         .AddQueueNamingConvention<DefaultQueueNamingConvention>()
