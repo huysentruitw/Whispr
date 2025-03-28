@@ -6,10 +6,10 @@ internal sealed class ProcessorFactory(ServiceBusClient client) : IAsyncDisposab
 {
     private readonly ConcurrentDictionary<string, ServiceBusProcessor> _processors = new();
 
-    public ServiceBusProcessor GetOrCreateProcessor(string queueName)
-        => _processors.GetOrAdd(queueName, _ => client.CreateProcessor(queueName, GetProcessorOptions()));
+    public ServiceBusProcessor GetOrCreateProcessor(string queueName, int concurrencyLimit = 1)
+        => _processors.GetOrAdd(queueName, _ => client.CreateProcessor(queueName, GetProcessorOptions(concurrencyLimit)));
 
-    private static ServiceBusProcessorOptions GetProcessorOptions()
+    private static ServiceBusProcessorOptions GetProcessorOptions(int concurrencyLimit)
     {
         return new ServiceBusProcessorOptions
         {
@@ -17,7 +17,7 @@ internal sealed class ProcessorFactory(ServiceBusClient client) : IAsyncDisposab
             PrefetchCount = Environment.ProcessorCount,
             MaxAutoLockRenewalDuration = TimeSpan.FromMinutes(5),
             ReceiveMode = ServiceBusReceiveMode.PeekLock,
-            MaxConcurrentCalls = 1,
+            MaxConcurrentCalls = concurrencyLimit,
         };
     }
 

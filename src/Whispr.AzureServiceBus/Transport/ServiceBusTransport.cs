@@ -9,6 +9,7 @@ internal sealed partial class ServiceBusTransport(
     ProcessorFactory processorFactory,
     EntityManager entityManager,
     ISubscriptionNamingConvention subscriptionNamingConvention,
+    IOptions<AzureServiceBusOptions> options,
     ILogger<ServiceBusTransport> logger) : ITransport
 {
     private const string MessageTypePropertyName = "MessageType";

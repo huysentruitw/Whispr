@@ -21,4 +21,10 @@ public sealed record AzureServiceBusOptions
     /// When not set, the default Azure credential is used.
     /// </summary>
     public TokenCredential? TokenCredential { get; set; } = null!;
+
+    /// <summary>
+    /// The maximum number of concurrent messages allowed to be processed from the same queue.
+    /// </summary>
+    /// <remarks>This is a per queue setting. Different queues already process messages in parallel.</remarks>
+    public int QueueConcurrencyLimit { get; set; } = 1;
 }
