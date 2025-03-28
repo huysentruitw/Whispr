@@ -29,10 +29,10 @@ internal sealed class InMemoryTransport(ILogger<InMemoryTransport> logger) : ITr
             return ValueTask.CompletedTask; // No listeners for this topic
 
         // Execute callbacks from a fire-and-forget task to simulate async message bus behavior
-        _ = Task.Run(
-            async () =>
-            {
-                foreach (var callback in callbacks)
+        foreach (var callback in callbacks)
+        {
+            Task.Run(
+                async () =>
                 {
                     try
                     {
@@ -46,9 +46,9 @@ internal sealed class InMemoryTransport(ILogger<InMemoryTransport> logger) : ITr
                             envelope.MessageId,
                             envelope.CorrelationId);
                     }
-                }
-            },
-            CancellationToken.None);
+                },
+                CancellationToken.None);
+        }
 
         return ValueTask.CompletedTask;
     }
