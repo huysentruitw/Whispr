@@ -16,6 +16,7 @@ internal sealed class OutboxProcessor<TDbContext>(
     where TDbContext : DbContext
 {
     private readonly TimeSpan _queryDelay = options.Value.QueryDelay;
+    private readonly TimeSpan _idleQueryDelay = options.Value.IdleQueryDelay;
     private readonly int _maxMessageBatchSize = options.Value.MaxMessageBatchSize;
     private readonly bool _messageRetentionEnabled = options.Value.EnableMessageRetention;
     private string? _sqlStatement = null;
@@ -24,11 +25,12 @@ internal sealed class OutboxProcessor<TDbContext>(
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-            await trigger.Wait(_queryDelay, stoppingToken);
+            await trigger.Wait(_idleQueryDelay, stoppingToken);
 
             try
             {
-                await SendOutboxMessages(stoppingToken);
+                while (await SendOutboxMessages(stoppingToken) > 0)
+                    await Task.Delay(_queryDelay, stoppingToken);
             }
             catch (OperationCanceledException)
             {
@@ -41,7 +43,7 @@ internal sealed class OutboxProcessor<TDbContext>(
         }
     }
 
-    private async ValueTask SendOutboxMessages(CancellationToken cancellationToken)
+    private async ValueTask<int> SendOutboxMessages(CancellationToken cancellationToken)
     {
         await using var scope = serviceProvider.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<TDbContext>();
@@ -53,7 +55,7 @@ internal sealed class OutboxProcessor<TDbContext>(
             .ToArrayAsync(cancellationToken);
 
         if (outboxMessages.Length == 0)
-            return;
+            return 0;
 
         var processedMessageIds = new List<long>();
 
@@ -83,6 +85,8 @@ internal sealed class OutboxProcessor<TDbContext>(
                 .Where(x => processedMessageIds.Contains(x.Id))
                 .ExecuteDeleteAsync(CancellationToken.None);
         }
+
+        return processedMessageIds.Count;
     }
 
     private async Task<long?> TrySendMessage(OutboxMessage outboxMessage)

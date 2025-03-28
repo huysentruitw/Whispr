@@ -1,12 +1,13 @@
 ﻿using Testcontainers.MsSql;
 
-namespace Whispr.IntegrationTests.Tests.TestInfrastructure;
+namespace Whispr.IntegrationTests.TestInfrastructure;
 
 public sealed class SqlServerFixture : IAsyncLifetime
 {
     private readonly MsSqlContainer _container;
 
-    public string ConnectionString { get; private set; } = null!;
+    // Since this is an assembly fixture, we need to use a static property to share the connection string
+    public static string ConnectionString { get; private set; } = null!;
 
     public SqlServerFixture()
     {

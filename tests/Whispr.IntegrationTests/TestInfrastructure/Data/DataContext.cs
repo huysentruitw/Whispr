@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore.Design;
 
-namespace Whispr.IntegrationTests.Tests.Data;
+namespace Whispr.IntegrationTests.TestInfrastructure.Data;
 
 public sealed class DataContext(DbContextOptions<DataContext> options) : DbContext(options)
 {
@@ -18,7 +18,7 @@ public sealed class DataContextFactory : IDesignTimeDbContextFactory<DataContext
     {
         var configuration = new ConfigurationBuilder()
             .AddJsonFile("appsettings.json")
-            .AddUserSecrets<IntegrationTests>()
+            .AddUserSecrets<AssemblyMarker>()
             .Build();
 
         var optionsBuilder = new DbContextOptionsBuilder<DataContext>();

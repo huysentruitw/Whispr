@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace Whispr.IntegrationTests.Tests.Data;
+namespace Whispr.IntegrationTests.TestInfrastructure.Data;
 
 public sealed record Product
 {

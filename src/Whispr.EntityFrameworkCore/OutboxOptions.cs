@@ -6,10 +6,15 @@
 public sealed record OutboxOptions
 {
     /// <summary>
-    /// The delay between each query to the outbox table.
+    /// The delay between each query to the outbox table when there are more messages to process.
+    /// </summary>
+    public TimeSpan QueryDelay { get; set; } = TimeSpan.FromMilliseconds(10);
+
+    /// <summary>
+    /// The delay between each query to the outbox table when there are no messages to process.
     /// </summary>
     /// <remarks>In normal cases, the outbox will be triggered automatically.</remarks>
-    public TimeSpan QueryDelay { get; set; } = TimeSpan.FromSeconds(10);
+    public TimeSpan IdleQueryDelay { get; set; } = TimeSpan.FromSeconds(10);
 
     /// <summary>
     /// The maximum number of messages to process in a single batch.

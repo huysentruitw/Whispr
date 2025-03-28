@@ -1,6 +1,6 @@
 ﻿using Whispr.Conventions;
 
-namespace Whispr.IntegrationTests.Tests.Conventions;
+namespace Whispr.IntegrationTests.TestInfrastructure.Conventions;
 
 public sealed class QueueNamingConvention : IQueueNamingConvention
 {

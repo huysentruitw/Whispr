@@ -1,18 +1,20 @@
 ﻿using Microsoft.Extensions.Hosting;
 
-namespace Whispr.IntegrationTests.Tests.TestInfrastructure;
+namespace Whispr.IntegrationTests.TestInfrastructure;
 
-public static class HostFactory
+public sealed class HostFixture : IAsyncLifetime, IServiceProvider
 {
-    public static async ValueTask<IHost> Create(string sqlConnectionString, bool useOutbox)
+    private IHost _host = null!;
+
+    public async ValueTask InitializeAsync()
     {
         var configuration = new ConfigurationBuilder()
             .AddJsonFile("appsettings.json")
-            .AddUserSecrets<IntegrationTests>()
+            .AddUserSecrets<AssemblyMarker>()
             .AddEnvironmentVariables()
             .Build();
 
-        var host = Host.CreateDefaultBuilder()
+        _host = Host.CreateDefaultBuilder()
             .ConfigureAppConfiguration(x => x.AddConfiguration(configuration))
             .ConfigureServices(
                 services =>
@@ -21,10 +23,10 @@ public static class HostFactory
                         .AddDbContext<DataContext>(
                             options =>
                             {
-                                options.UseSqlServer(sqlConnectionString);
+                                options.UseSqlServer(SqlServerFixture.ConnectionString);
                             });
 
-                    var builder = services
+                    services
                         .AddWhispr()
                         .AddAzureServiceBusTransport(
                             options =>
@@ -35,22 +37,27 @@ public static class HostFactory
                         .AddTopicNamingConvention<TopicNamingConvention>()
                         .AddQueueNamingConvention<QueueNamingConvention>()
                         .AddSubscriptionNamingConvention<SubscriptionNamingConvention>()
-                        .AddMessageHandlersFromAssembly(Assembly.GetExecutingAssembly())
+                        .AddMessageHandlersFromAssembly(typeof(AssemblyMarker).Assembly)
                         .AddPublishFilter<FirstPublishFilter>()
-                        .AddPublishFilter<SecondPublishFilter>();
-
-                    if (useOutbox)
-                        builder.AddOutbox<DataContext>();
+                        .AddPublishFilter<SecondPublishFilter>()
+                        .AddOutbox<DataContext>();
                 })
             .Build();
 
-        await RecreateDatabase(host.Services);
+        await RecreateDatabase(_host.Services);
 
-        await host.StartAsync();
-        await host.Services.GetRequiredService<IMessageBusInitializer>().Start();
-
-        return host;
+        await _host.Services.GetRequiredService<IMessageBusInitializer>().Start();
+        await _host.StartAsync();
     }
+
+    public async ValueTask DisposeAsync()
+    {
+        await _host.StopAsync();
+        _host.Dispose();
+        _host = null!;
+    }
+
+    public object? GetService(Type serviceType) => _host.Services.GetService(serviceType);
 
     private static async Task RecreateDatabase(IServiceProvider services)
     {

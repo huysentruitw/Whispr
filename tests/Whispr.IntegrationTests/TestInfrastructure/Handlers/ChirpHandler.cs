@@ -1,15 +1,17 @@
 ﻿using System.Collections.Concurrent;
 
-namespace Whispr.IntegrationTests.Tests.Handlers;
+namespace Whispr.IntegrationTests.TestInfrastructure.Handlers;
 
 internal sealed class ChirpHandler
     : IMessageHandler<ChirpHeard>
 {
     private static readonly ConcurrentBag<object> HandledMessages = [];
+    private static readonly ConcurrentDictionary<Guid, DateTime> MessageProcessedTimes = [];
 
     public ValueTask Handle(Envelope<ChirpHeard> envelope, CancellationToken cancellationToken)
     {
         HandledMessages.Add(envelope.Message);
+        MessageProcessedTimes[envelope.Message.BirdId] = DateTime.UtcNow;
         return ValueTask.CompletedTask;
     }
 
@@ -27,5 +29,10 @@ internal sealed class ChirpHandler
         }
 
         return null;
+    }
+
+    public static DateTime? GetMessageProcessedTime(Guid birdId)
+    {
+        return MessageProcessedTimes.TryGetValue(birdId, out var time) ? time : null;
     }
 }

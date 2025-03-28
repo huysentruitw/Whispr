@@ -1,6 +1,6 @@
 ﻿using Whispr.Filtering;
 
-namespace Whispr.IntegrationTests.Tests.Filters;
+namespace Whispr.IntegrationTests.TestInfrastructure.Filters;
 
 public sealed class SecondPublishFilter : IPublishFilter
 {

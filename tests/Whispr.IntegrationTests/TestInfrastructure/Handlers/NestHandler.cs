@@ -1,4 +1,4 @@
-﻿namespace Whispr.IntegrationTests.Tests.Handlers;
+﻿namespace Whispr.IntegrationTests.TestInfrastructure.Handlers;
 
 internal sealed class NestHandler
     : IMessageHandler<NestBuilt>
