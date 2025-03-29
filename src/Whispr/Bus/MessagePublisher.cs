@@ -26,7 +26,7 @@ internal sealed class MessagePublisher(
             MessageType = messageType,
             Headers = options.Headers,
             DestinationTopicName = topicNamingConvention.Format(typeof(TMessage)),
-            CorrelationId = options.CorrelationId ?? Guid.NewGuid().ToString(),
+            CorrelationId = options.CorrelationId,
             DeferredUntil = options.DeferredUntil,
         };
 

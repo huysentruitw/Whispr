@@ -35,7 +35,7 @@ public sealed record Envelope<TMessage>
     /// <summary>
     /// The correlation ID.
     /// </summary>
-    public required string CorrelationId { get; init; }
+    public required string? CorrelationId { get; init; }
 
     /// <summary>
     /// The deferred until date and time. If <see langword="null"/>, the message is not deferred and will be processed immediately.

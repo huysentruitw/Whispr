@@ -30,7 +30,7 @@ public sealed record OutboxMessage
     /// <summary>
     /// The correlation ID.
     /// </summary>
-    public required string CorrelationId { get; init; }
+    public required string? CorrelationId { get; init; }
 
     /// <summary>
     /// The W3C trace parent ID.
@@ -79,7 +79,6 @@ internal sealed class OutboxMessageEntityTypeConfiguration : IEntityTypeConfigur
             .HasMaxLength(50);
 
         builder.Property(x => x.CorrelationId)
-            .IsRequired()
             .HasMaxLength(50);
 
         builder.Property(x => x.TraceParent)
