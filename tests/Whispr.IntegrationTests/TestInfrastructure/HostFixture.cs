@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Hosting;
+﻿using System.Diagnostics;
+using Microsoft.Extensions.Hosting;
 
 namespace Whispr.IntegrationTests.TestInfrastructure;
 
@@ -13,6 +14,8 @@ public sealed class HostFixture : IAsyncLifetime, IServiceProvider
             .AddUserSecrets<AssemblyMarker>()
             .AddEnvironmentVariables()
             .Build();
+
+        SetupActivityListener();
 
         _host = Host.CreateDefaultBuilder()
             .ConfigureAppConfiguration(x => x.AddConfiguration(configuration))
@@ -76,5 +79,16 @@ public sealed class HostFixture : IAsyncLifetime, IServiceProvider
         var databaseName = dbContext.Database.GetDbConnection().Database;
         if (!databaseName.EndsWith("-test"))
             throw new InvalidOperationException("Not a test database!");
+    }
+
+    private static void SetupActivityListener()
+    {
+        var listener = new ActivityListener
+        {
+            ShouldListenTo = _ => true,
+            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded,
+        };
+
+        ActivitySource.AddActivityListener(listener);
     }
 }

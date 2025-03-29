@@ -1,20 +1,19 @@
-﻿using Whispr.EntityFrameworkCore.Entities;
-using Whispr.EntityFrameworkCore.Processing;
-using Whispr.Outbox;
-
-namespace Whispr.EntityFrameworkCore;
+﻿namespace Whispr.EntityFrameworkCore;
 
 internal sealed class Outbox<TDbContext>(TDbContext dbContext, OutboxProcessorTrigger<TDbContext> trigger) : IOutbox
     where TDbContext : DbContext
 {
     public async ValueTask Add(string topicName, SerializedEnvelope envelope, CancellationToken cancellationToken = default)
     {
+        var traceParent = Activity.Current?.Id;
+
         var outboxMessage = new OutboxMessage
         {
             Body = envelope.Body,
             MessageType = envelope.MessageType,
             MessageId = envelope.MessageId,
             CorrelationId = envelope.CorrelationId,
+            TraceParent = traceParent,
             DeferredUntil = envelope.DeferredUntil,
             DestinationTopicName = topicName,
             CreatedAtUtc = DateTimeOffset.UtcNow,

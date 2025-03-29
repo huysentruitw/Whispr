@@ -1,6 +1,4 @@
-﻿using Whispr.EntityFrameworkCore.Entities;
-
-namespace Whispr.EntityFrameworkCore;
+﻿namespace Whispr.EntityFrameworkCore;
 
 /// <summary>
 /// Extension methods for the <see cref="ModelBuilder"/>.

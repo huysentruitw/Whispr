@@ -33,6 +33,11 @@ public sealed record OutboxMessage
     public required string CorrelationId { get; init; }
 
     /// <summary>
+    /// The W3C trace parent ID.
+    /// </summary>
+    public required string? TraceParent { get; init; }
+
+    /// <summary>
     /// The deferred until date and time. If <see langword="null"/>, the message is not deferred and will be processed immediately.
     /// </summary>
     public required DateTimeOffset? DeferredUntil { get; init; }
@@ -76,6 +81,9 @@ internal sealed class OutboxMessageEntityTypeConfiguration : IEntityTypeConfigur
         builder.Property(x => x.CorrelationId)
             .IsRequired()
             .HasMaxLength(50);
+
+        builder.Property(x => x.TraceParent)
+            .HasMaxLength(60); // W3C trace parent ID is 55 characters long
 
         builder.Property(x => x.DeferredUntil);
 

@@ -1,17 +1,11 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using Whispr.Bus;
-using Whispr.EntityFrameworkCore.Entities;
-
-namespace Whispr.EntityFrameworkCore.Processing;
+﻿namespace Whispr.EntityFrameworkCore.Processing;
 
 internal sealed class OutboxProcessor<TDbContext>(
     OutboxProcessorTrigger<TDbContext> trigger,
     IMessageSender messageSender,
     IOptions<OutboxOptions> options,
     IServiceProvider serviceProvider,
+    IDiagnosticEventListener diagnosticEventListener,
     ILogger<OutboxProcessor<TDbContext>> logger) : BackgroundService
     where TDbContext : DbContext
 {
@@ -93,6 +87,7 @@ internal sealed class OutboxProcessor<TDbContext>(
     {
         try
         {
+            using var _ = diagnosticEventListener.ProcessOutboxMessage(traceParent: outboxMessage.TraceParent);
             var envelope = CreateSerializedEnvelope(outboxMessage);
             await messageSender.Send(outboxMessage.DestinationTopicName, envelope, CancellationToken.None);
             return outboxMessage.Id;

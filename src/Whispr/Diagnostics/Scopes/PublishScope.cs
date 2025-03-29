@@ -2,23 +2,18 @@
 
 namespace Whispr.Diagnostics.Scopes;
 
-internal sealed class PublishScope : IDisposable
+internal sealed class PublishScope(Activity activity) : IDisposable
 {
-    private readonly Activity _activity;
     private bool _disposed;
 
-    public PublishScope(Activity activity)
-    {
-        _activity = activity;
-        _activity.DisplayName = "Whispr.Publish";
-    }
+    public const string ActivityName = "Whispr.Publish";
 
     public void Dispose()
     {
         if (_disposed)
             return;
 
-        _activity.Dispose();
+        activity.Dispose();
         _disposed = true;
     }
 }

@@ -1,8 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using Whispr.Builder;
+﻿using Whispr.Builder;
 using Whispr.EntityFrameworkCore.Cleaning;
-using Whispr.EntityFrameworkCore.Processing;
-using Whispr.Outbox;
 
 namespace Whispr.EntityFrameworkCore;
 
@@ -27,6 +24,7 @@ public static class WhisprBuilderExtensions
         whisprBuilder.Services
             .AddHostedService<OutboxProcessor<TDbContext>>()
             .AddSingleton<OutboxProcessorTrigger<TDbContext>>()
+            .AddSingleton<IDiagnosticEventListener, ActivityDiagnosticEventListener>()
             .AddHostedService<OutboxCleanupService<TDbContext>>()
             .AddScoped<IOutbox, Outbox<TDbContext>>();
 

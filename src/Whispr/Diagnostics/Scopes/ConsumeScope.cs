@@ -2,23 +2,18 @@
 
 namespace Whispr.Diagnostics.Scopes;
 
-internal sealed class ConsumeScope : IDisposable
+internal sealed class ConsumeScope(Activity activity) : IDisposable
 {
-    private readonly Activity _activity;
     private bool _disposed;
 
-    public ConsumeScope(Activity activity)
-    {
-        _activity = activity;
-        _activity.DisplayName = "Whispr.Consume";
-    }
+    public const string ActivityName = "Whispr.Consume";
 
     public void Dispose()
     {
         if (_disposed)
             return;
 
-        _activity.Dispose();
+        activity.Dispose();
         _disposed = true;
     }
 }

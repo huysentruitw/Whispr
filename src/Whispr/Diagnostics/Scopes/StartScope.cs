@@ -2,23 +2,18 @@
 
 namespace Whispr.Diagnostics.Scopes;
 
-internal sealed class StartScope : IDisposable
+internal sealed class StartScope(Activity activity) : IDisposable
 {
-    private readonly Activity _activity;
     private bool _disposed;
 
-    public StartScope(Activity activity)
-    {
-        _activity = activity;
-        _activity.DisplayName = "Whispr.Start";
-    }
+    public const string ActivityName = "Whispr.Start";
 
     public void Dispose()
     {
         if (_disposed)
             return;
 
-        _activity.Dispose();
+        activity.Dispose();
         _disposed = true;
     }
 }

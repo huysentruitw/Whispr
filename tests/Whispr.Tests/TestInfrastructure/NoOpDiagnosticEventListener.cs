@@ -12,7 +12,9 @@ public sealed class NoOpDiagnosticsEventListener : IDiagnosticEventListener
 
     public IDisposable Consume() => new EmptyScope();
 
-    public sealed class EmptyScope : IDisposable
+    public IDisposable OutboxProcess() => new EmptyScope();
+
+    private sealed class EmptyScope : IDisposable
     {
         public void Dispose()
         {

@@ -14,5 +14,8 @@ public static class WhisprActivitySource
 
     private static string Version { get; } = typeof(WhisprActivitySource).Assembly.GetName().Version?.ToString() ?? "0.0.0";
 
-    internal static ActivitySource Source { get; } = new(Name, Version);
+    /// <summary>
+    /// Gets the activity source for this library.
+    /// </summary>
+    public static ActivitySource Source { get; } = new(Name, Version);
 }

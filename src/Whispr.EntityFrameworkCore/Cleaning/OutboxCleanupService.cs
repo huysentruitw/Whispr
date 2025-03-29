@@ -1,10 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using Whispr.EntityFrameworkCore.Entities;
-
-namespace Whispr.EntityFrameworkCore.Cleaning;
+﻿namespace Whispr.EntityFrameworkCore.Cleaning;
 
 internal sealed class OutboxCleanupService<TDbContext>(
     IOptions<OutboxOptions> options,

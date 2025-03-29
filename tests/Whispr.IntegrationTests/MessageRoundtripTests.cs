@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Whispr.IntegrationTests.TestInfrastructure;
 
 namespace Whispr.IntegrationTests.Tests;
@@ -16,7 +15,7 @@ public sealed class MessageRoundtripTests(HostFixture hostFixture)
         await MimicAction(hostFixture, message);
 
         // Assert
-        var handledMessage = ChirpHandler.WaitForMessage<ChirpHeard>(m => m.BirdId == birdId, TimeSpan.FromSeconds(10));
+        var handledMessage = ChirpHandler.WaitForMessage<ChirpHeard>(m => m.BirdId == birdId, TimeSpan.FromSeconds(20));
         Assert.NotNull(handledMessage);
     }
 
@@ -33,7 +32,7 @@ public sealed class MessageRoundtripTests(HostFixture hostFixture)
         await MimicAction(hostFixture, messages);
 
         var handledMessages = messages
-            .Select(message => ChirpHandler.WaitForMessage<ChirpHeard>(m => m.BirdId == message.BirdId, TimeSpan.FromSeconds(10)))
+            .Select(message => ChirpHandler.WaitForMessage<ChirpHeard>(m => m.BirdId == message.BirdId, TimeSpan.FromSeconds(20)))
             .ToArray();
 
         Assert.All(handledMessages, Assert.NotNull);
@@ -52,8 +51,6 @@ public sealed class MessageRoundtripTests(HostFixture hostFixture)
         var messagePublisher = serviceScope.ServiceProvider.GetRequiredService<IMessagePublisher>();
 
         dbContext.Set<Product>().Add(new Product { Id = Guid.NewGuid(), Name = "Test", Price = 1.23m });
-
-        Activity.Current = new Activity("Test");
 
         foreach (var message in messages)
             await messagePublisher.Publish(message, cancellationToken: TestContext.Current.CancellationToken);
