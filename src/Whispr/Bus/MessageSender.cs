@@ -7,7 +7,7 @@ internal sealed class MessageSender(
 {
     public ValueTask Send(string topicName, SerializedEnvelope envelope, CancellationToken cancellationToken)
     {
-        using var _ = diagnosticEventListener.Send();
+        using var _ = diagnosticEventListener.Send(topicName, envelope);
 
         using var scope = serviceProvider.CreateScope();
         var sendFilters = scope.ServiceProvider.GetServices<ISendFilter>().ToArray();

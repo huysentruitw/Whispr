@@ -16,7 +16,7 @@ public sealed class MessageProcessorTests
         var serializedEnvelope = SerializedEnvelopeFactory.Create(message);
 
         // Act
-        await testHarness.Processor.Process(serializedEnvelope, CancellationToken.None);
+        await testHarness.Processor.Process("queue", serializedEnvelope, CancellationToken.None);
 
         // Assert
         Assert.Equal(1, testHarness.Handler.HandleCallCount);
@@ -37,7 +37,7 @@ public sealed class MessageProcessorTests
         var serializedEnvelope = SerializedEnvelopeFactory.Create(message);
 
         // Act
-        await testHarness.Processor.Process(serializedEnvelope, CancellationToken.None);
+        await testHarness.Processor.Process("queue", serializedEnvelope, CancellationToken.None);
 
         // Assert
         Assert.Equal(1, testHarness.Handler.HandleCallCount);
@@ -61,7 +61,7 @@ public sealed class MessageProcessorTests
 
         // Act & Assert
         await Assert.ThrowsAsync<JsonException>(() =>
-            testHarness.Processor.Process(serializedEnvelope, CancellationToken.None).AsTask());
+            testHarness.Processor.Process("queue", serializedEnvelope, CancellationToken.None).AsTask());
     }
 
     private sealed class TestHarness<THandler, TMessage>

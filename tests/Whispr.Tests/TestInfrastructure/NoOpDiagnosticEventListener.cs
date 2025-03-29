@@ -1,4 +1,5 @@
 ﻿using Whispr.Diagnostics;
+using Whispr.Diagnostics.Scopes;
 
 namespace Whispr.Tests.TestInfrastructure;
 
@@ -6,18 +7,9 @@ public sealed class NoOpDiagnosticsEventListener : IDiagnosticEventListener
 {
     public IDisposable Start() => new EmptyScope();
 
-    public IDisposable Publish() => new EmptyScope();
+    public IDisposable Publish<TMessage>(Envelope<TMessage> envelope) where TMessage : class => new EmptyScope();
 
-    public IDisposable Send() => new EmptyScope();
+    public IDisposable Send(string topicName, SerializedEnvelope envelope) => new EmptyScope();
 
-    public IDisposable Consume() => new EmptyScope();
-
-    public IDisposable OutboxProcess() => new EmptyScope();
-
-    private sealed class EmptyScope : IDisposable
-    {
-        public void Dispose()
-        {
-        }
-    }
+    public IDisposable Consume(string queueName, SerializedEnvelope envelope) => new EmptyScope();
 }

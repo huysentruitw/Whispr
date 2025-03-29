@@ -18,7 +18,8 @@ internal sealed class ActivityDiagnosticEventListener : IDiagnosticEventListener
         return new StartScope(activity);
     }
 
-    public IDisposable Publish()
+    public IDisposable Publish<TMessage>(Envelope<TMessage> envelope)
+        where TMessage : class
     {
         var activity = Source.CreateActivity(PublishScope.ActivityName, ActivityKind.Internal);
 
@@ -27,10 +28,11 @@ internal sealed class ActivityDiagnosticEventListener : IDiagnosticEventListener
 
         activity.Start();
 
-        return new PublishScope(activity);
+        return new PublishScope(activity)
+            .WithEnvelope(envelope);
     }
 
-    public IDisposable Send()
+    public IDisposable Send(string topicName, SerializedEnvelope envelope)
     {
         var activity = Source.CreateActivity(SendScope.ActivityName, ActivityKind.Producer);
 
@@ -39,10 +41,12 @@ internal sealed class ActivityDiagnosticEventListener : IDiagnosticEventListener
 
         activity.Start();
 
-        return new SendScope(activity);
+        return new SendScope(activity)
+            .WithTopicName(topicName)
+            .WithEnvelope(envelope);
     }
 
-    public IDisposable Consume()
+    public IDisposable Consume(string queueName, SerializedEnvelope envelope)
     {
         var activity = Source.CreateActivity(ConsumeScope.ActivityName, ActivityKind.Consumer);
 
@@ -51,6 +55,8 @@ internal sealed class ActivityDiagnosticEventListener : IDiagnosticEventListener
 
         activity.Start();
 
-        return new ConsumeScope(activity);
+        return new ConsumeScope(activity)
+            .WithQueueName(queueName)
+            .WithEnvelope(envelope);
     }
 }

@@ -87,7 +87,7 @@ internal sealed class OutboxProcessor<TDbContext>(
     {
         try
         {
-            using var _ = diagnosticEventListener.ProcessOutboxMessage(traceParent: outboxMessage.TraceParent);
+            using var _ = diagnosticEventListener.ProcessOutboxMessage(outboxMessage);
             var envelope = CreateSerializedEnvelope(outboxMessage);
             await messageSender.Send(outboxMessage.DestinationTopicName, envelope, CancellationToken.None);
             return outboxMessage.Id;

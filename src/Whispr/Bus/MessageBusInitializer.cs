@@ -30,7 +30,7 @@ internal sealed class MessageBusInitializer(
                 var queueName = queueNamingConvention.Format(descriptor.HandlerType);
                 var topicNames = descriptor.MessageTypes.Select(topicNamingConvention.Format).ToArray();
                 logger.LogInformation("Starting listener for queue: {QueueName} and topics: {TopicNames}", queueName, topicNames);
-                return transport.StartListener(queueName, topicNames, (se, ct) => MessageCallback(descriptor, se, ct), cancellationToken).AsTask();
+                return transport.StartListener(queueName, topicNames, (se, ct) => MessageCallback(descriptor, queueName, se, ct), cancellationToken).AsTask();
             });
 
         await Task.WhenAll(tasks);
@@ -38,6 +38,7 @@ internal sealed class MessageBusInitializer(
 
     private async ValueTask MessageCallback(
         MessageHandlerDescriptor descriptor,
+        string queueName,
         SerializedEnvelope serializedEnvelope,
         CancellationToken cancellationToken = default)
     {
@@ -48,6 +49,6 @@ internal sealed class MessageBusInitializer(
 
         await using var scope = serviceProvider.CreateAsyncScope();
         var processor = (IMessageProcessor)scope.ServiceProvider.GetRequiredService(messageProcessorType);
-        await processor.Process(serializedEnvelope, cancellationToken);
+        await processor.Process(queueName, serializedEnvelope, cancellationToken);
     }
 }

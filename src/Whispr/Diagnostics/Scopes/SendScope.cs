@@ -8,6 +8,19 @@ internal sealed class SendScope(Activity activity) : IDisposable
 
     public const string ActivityName = "Whispr.Send";
 
+    public SendScope WithTopicName(string topicName)
+    {
+        activity.SetTag(TagNames.TopicName, topicName);
+        return this;
+    }
+
+    public SendScope WithEnvelope(SerializedEnvelope envelope)
+    {
+        activity.SetTag(TagNames.MessageId, envelope.MessageId);
+        activity.SetTag(TagNames.MessageType, envelope.MessageType);
+        return this;
+    }
+
     public void Dispose()
     {
         if (_disposed)

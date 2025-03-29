@@ -8,6 +8,14 @@ internal sealed class PublishScope(Activity activity) : IDisposable
 
     public const string ActivityName = "Whispr.Publish";
 
+    public PublishScope WithEnvelope<TMessage>(Envelope<TMessage> envelope)
+        where TMessage : class
+    {
+        activity.SetTag(TagNames.MessageId, envelope.MessageId);
+        activity.SetTag(TagNames.MessageType, envelope.MessageType);
+        return this;
+    }
+
     public void Dispose()
     {
         if (_disposed)

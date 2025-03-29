@@ -14,14 +14,12 @@ internal sealed class MessagePublisher(
         var messageType = message.GetType().FullName
             ?? throw new InvalidOperationException("Message type must have a full name");
 
-        using var _ = diagnosticEventListener.Publish();
-
         var options = new PublishOptions();
         configure?.Invoke(options);
 
         var envelope = new Envelope<TMessage>
         {
-            MessageId = Guid.NewGuid().ToString(),
+            MessageId = Guid.NewGuid().ToString("N"),
             Message = message,
             MessageType = messageType,
             Headers = options.Headers,
@@ -29,6 +27,8 @@ internal sealed class MessagePublisher(
             CorrelationId = options.CorrelationId,
             DeferredUntil = options.DeferredUntil,
         };
+
+        using var publishScope = diagnosticEventListener.Publish(envelope);
 
         // Build the publishing pipeline
         Func<Envelope<TMessage>, CancellationToken, ValueTask> pipeline = Publish;
