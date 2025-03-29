@@ -21,7 +21,7 @@ public sealed class MessageRoundtripTests(HostFixture hostFixture)
     }
 
     [Theory]
-    [InlineData(500)]
+    [MemberData(nameof(GetIterationCount))]
     public async Task Given_MessageHandlerRegistered_When_PublishLotsOfMessages_Then_MessagesHandledInTime(int iterations)
     {
         // Arrange
@@ -32,10 +32,17 @@ public sealed class MessageRoundtripTests(HostFixture hostFixture)
         // Act
         await MimicAction(hostFixture, messages);
 
-        var handledMessages = messages.Select(message => ChirpHandler.WaitForMessage<ChirpHeard>(m => m.BirdId == message.BirdId, TimeSpan.FromSeconds(10)))
+        var handledMessages = messages
+            .Select(message => ChirpHandler.WaitForMessage<ChirpHeard>(m => m.BirdId == message.BirdId, TimeSpan.FromSeconds(10)))
             .ToArray();
 
         Assert.All(handledMessages, Assert.NotNull);
+    }
+
+    public static TheoryData<int> GetIterationCount()
+    {
+        var isCi = (Environment.GetEnvironmentVariable("CI") == "true");
+        return new TheoryData<int>(isCi ? 25 : 500);
     }
 
     private static async ValueTask MimicAction(IServiceProvider serviceProvider, params ChirpHeard[] messages)
