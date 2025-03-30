@@ -1,6 +1,5 @@
-﻿namespace Whispr.AzureServiceBus;
+﻿namespace Whispr.AzureServiceBus.Management;
 
-// TODO Check how we need to configure the service-bus entities
 internal sealed class EntityManager(ServiceBusAdministrationClient administrationClient)
 {
     public async Task CreateQueueIfNotExists(string queueName, CancellationToken cancellationToken = default)
@@ -9,11 +8,21 @@ internal sealed class EntityManager(ServiceBusAdministrationClient administratio
             await CreateQueue(queueName, cancellationToken);
     }
 
-    public async Task CreateQueue(string queueName, CancellationToken cancellationToken = default)
+    private async Task CreateQueue(string queueName, CancellationToken cancellationToken = default)
     {
         try
         {
-            var createResponse = await administrationClient.CreateQueueAsync(queueName, cancellationToken);
+            var createOptions = new CreateQueueOptions(queueName)
+            {
+                AutoDeleteOnIdle = TimeSpan.FromDays(427),
+                DefaultMessageTimeToLive = TimeSpan.FromDays(365),
+                EnableBatchedOperations = true,
+                DeadLetteringOnMessageExpiration = true,
+                LockDuration = TimeSpan.FromMinutes(5),
+                MaxDeliveryCount = 5,
+            };
+
+            var createResponse = await administrationClient.CreateQueueAsync(createOptions, cancellationToken);
             if (createResponse.HasValue && createResponse.Value.Status == EntityStatus.Active)
                 return;
         }
@@ -31,11 +40,18 @@ internal sealed class EntityManager(ServiceBusAdministrationClient administratio
             await CreateTopic(topicName, cancellationToken);
     }
 
-    public async Task CreateTopic(string topicName, CancellationToken cancellationToken = default)
+    private async Task CreateTopic(string topicName, CancellationToken cancellationToken = default)
     {
         try
         {
-            var createResponse = await administrationClient.CreateTopicAsync(topicName, cancellationToken);
+            var createOptions = new CreateTopicOptions(topicName)
+            {
+                AutoDeleteOnIdle = TimeSpan.FromDays(427),
+                DefaultMessageTimeToLive = TimeSpan.FromDays(365),
+                EnableBatchedOperations = true,
+            };
+
+            var createResponse = await administrationClient.CreateTopicAsync(createOptions, cancellationToken);
             if (createResponse.HasValue && createResponse.Value.Status == EntityStatus.Active)
                 return;
         }
@@ -53,7 +69,7 @@ internal sealed class EntityManager(ServiceBusAdministrationClient administratio
             await CreateSubscription(subscriptionName, topicName, queueName, cancellationToken);
     }
 
-    public async Task CreateSubscription(string subscriptionName, string topicName, string queueName, CancellationToken cancellationToken = default)
+    private async Task CreateSubscription(string subscriptionName, string topicName, string queueName, CancellationToken cancellationToken = default)
     {
         try
         {

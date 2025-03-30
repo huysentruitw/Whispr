@@ -1,6 +1,6 @@
 ﻿using Azure.Identity;
 using Whispr.AzureServiceBus.Conventions;
-using Whispr.AzureServiceBus.Factories;
+using Whispr.AzureServiceBus.Management;
 using Whispr.AzureServiceBus.Transport;
 
 namespace Whispr.AzureServiceBus;

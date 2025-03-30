@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using Whispr.AzureServiceBus.Conventions;
-using Whispr.AzureServiceBus.Factories;
+using Whispr.AzureServiceBus.Management;
 
 namespace Whispr.AzureServiceBus.Transport;
 

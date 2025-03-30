@@ -1,6 +1,6 @@
 ﻿using System.Collections.Concurrent;
 
-namespace Whispr.AzureServiceBus.Factories;
+namespace Whispr.AzureServiceBus.Management;
 
 internal sealed class ProcessorFactory(ServiceBusClient client) : IAsyncDisposable
 {
