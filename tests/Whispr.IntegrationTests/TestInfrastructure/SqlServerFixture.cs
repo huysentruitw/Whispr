@@ -1,4 +1,5 @@
-﻿using Testcontainers.MsSql;
+﻿using System.Net.NetworkInformation;
+using Testcontainers.MsSql;
 
 namespace Whispr.IntegrationTests.TestInfrastructure;
 
@@ -19,6 +20,12 @@ public sealed class SqlServerFixture : IAsyncLifetime
 
     public async ValueTask InitializeAsync()
     {
+        if (!CiDetector.IsCi() && IsLocalSqlServer())
+        {
+            ConnectionString = "Server=localhost,1433;Database=whispr-test;Integrated Security=True;Trusted_Connection=True;TrustServerCertificate=True;";
+            return;
+        }
+
         await _container.StartAsync();
 
         ConnectionString = _container.GetConnectionString()
@@ -28,5 +35,12 @@ public sealed class SqlServerFixture : IAsyncLifetime
     public async ValueTask DisposeAsync()
     {
         await _container.DisposeAsync();
+    }
+
+    private static bool IsLocalSqlServer()
+    {
+        var ipProperties = IPGlobalProperties.GetIPGlobalProperties();
+        var ipEndPoints = ipProperties.GetActiveTcpListeners();
+        return ipEndPoints.Any(x => x.Port == 1433);
     }
 }

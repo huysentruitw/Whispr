@@ -22,7 +22,7 @@ public sealed class MessageRoundtripTests(HostFixture hostFixture, ITestOutputHe
     [Fact]
     public async Task Given_MessageHandlerRegistered_When_PublishLotsOfMessages_Then_MessagesHandledInTime()
     {
-        if (IsCiRun())
+        if (CiDetector.IsCi())
         {
             testOutputHelper.WriteLine("Skipping test due to GitHub action environment limitations.");
             return;
@@ -44,9 +44,26 @@ public sealed class MessageRoundtripTests(HostFixture hostFixture, ITestOutputHe
         Assert.All(handledMessages, Assert.NotNull);
     }
 
-    public static bool IsCiRun() => bool.TryParse(Environment.GetEnvironmentVariable("CI"), out var ci) && ci;
+    [Fact]
+    public async Task Given_MessageHandlerThrowingException_When_MessagePublished_Then_HandlerRetried()
+    {
+        // Arrange
+        var nestId = Guid.NewGuid();
+        var message = new NestBuilt(NestId: nestId);
 
-    private static async ValueTask MimicAction(IServiceProvider serviceProvider, params ChirpHeard[] messages)
+        // Act
+        await MimicAction(hostFixture, message);
+
+        // Assert
+        var handledMessage = NestHandler.WaitForMessage<NestBuilt>(
+            m => m.NestId == nestId && NestHandler.GetMessageDeliveryCount(m.NestId) == 5,
+            TimeSpan.FromSeconds(20));
+
+        Assert.NotNull(handledMessage);
+    }
+
+    private static async ValueTask MimicAction<TMessage>(IServiceProvider serviceProvider, params TMessage[] messages)
+        where TMessage : class
     {
         using var serviceScope = serviceProvider.CreateScope();
         var dbContext = serviceScope.ServiceProvider.GetRequiredService<DataContext>();
