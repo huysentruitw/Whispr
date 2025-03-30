@@ -14,7 +14,7 @@ internal sealed class ProcessorFactory(ServiceBusClient client) : IAsyncDisposab
         return new ServiceBusProcessorOptions
         {
             AutoCompleteMessages = false,
-            PrefetchCount = Environment.ProcessorCount,
+            PrefetchCount = concurrencyLimit,
             MaxAutoLockRenewalDuration = TimeSpan.FromMinutes(5),
             ReceiveMode = ServiceBusReceiveMode.PeekLock,
             MaxConcurrentCalls = concurrencyLimit,
