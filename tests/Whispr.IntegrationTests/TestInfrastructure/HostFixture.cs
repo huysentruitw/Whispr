@@ -36,7 +36,7 @@ public sealed class HostFixture : IAsyncLifetime, IServiceProvider
                             {
                                 options.ConnectionString = configuration.GetValue<string>("AzureServiceBus:ConnectionString");
                                 options.HostName = configuration.GetValue<string>("AzureServiceBus:HostName");
-                                options.QueueConcurrencyLimit = 4;
+                                options.QueueConcurrencyLimit = Environment.ProcessorCount;
                             })
                         .AddTopicNamingConvention<TopicNamingConvention>()
                         .AddQueueNamingConvention<QueueNamingConvention>()
