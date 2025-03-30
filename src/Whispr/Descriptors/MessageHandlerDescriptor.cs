@@ -1,4 +1,4 @@
-﻿namespace Whispr;
+﻿namespace Whispr.Descriptors;
 
 internal sealed record MessageHandlerDescriptor
 {

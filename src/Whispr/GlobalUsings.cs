@@ -6,6 +6,7 @@ global using Microsoft.Extensions.Logging;
 global using Whispr.Builder;
 global using Whispr.Bus;
 global using Whispr.Conventions;
+global using Whispr.Descriptors;
 global using Whispr.Diagnostics;
 global using Whispr.Filtering;
 global using Whispr.Outbox;

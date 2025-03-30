@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Logging;
 using Whispr.Bus;
 using Whispr.Conventions;
+using Whispr.Descriptors;
 using Whispr.Tests.TestInfrastructure;
 using Whispr.Transport;
 

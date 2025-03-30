@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Whispr.Builder;
+using Whispr.Descriptors;
 
 namespace Whispr.Tests.Builder;
 
