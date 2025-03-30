@@ -2,7 +2,7 @@ using Whispr.IntegrationTests.TestInfrastructure;
 
 namespace Whispr.IntegrationTests.Tests;
 
-public sealed class MessageRoundtripTests(HostFixture hostFixture, ITestOutputHelper testOutputHelper)
+public sealed class MessageRoundtripTests(HostFixture hostFixture)
 {
     [Fact]
     public async Task Given_MessageHandlerRegistered_When_MessagePublished_Then_MessageHandled()
@@ -22,14 +22,8 @@ public sealed class MessageRoundtripTests(HostFixture hostFixture, ITestOutputHe
     [Fact]
     public async Task Given_MessageHandlerRegistered_When_PublishLotsOfMessages_Then_MessagesHandledInTime()
     {
-        if (CiDetector.IsCi())
-        {
-            testOutputHelper.WriteLine("Skipping test due to GitHub action environment limitations.");
-            return;
-        }
-
         // Arrange
-        var iterationCount = 500;
+        var iterationCount = CiDetector.IsCi() ? 100 : 500;
         var messages = Enumerable.Range(0, iterationCount)
             .Select(_ => new ChirpHeard(BirdId: Guid.NewGuid(), TimeUtc: DateTime.UtcNow))
             .ToArray();
