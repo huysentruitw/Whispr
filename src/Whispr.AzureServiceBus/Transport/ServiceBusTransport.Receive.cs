@@ -68,10 +68,11 @@ internal sealed partial class ServiceBusTransport
                 args.Message.MessageId,
                 args.Message.CorrelationId);
 
+            // If the message is abandoned, it will be made available for reprocessing immediately.
             var exceptionDetails = GetExceptionDetails(ex);
             await args.AbandonMessageAsync(args.Message, exceptionDetails, cancellationToken);
 
-            throw new InvalidOperationException($"Failed to process message with correlation ID: {args.Message.CorrelationId}", ex);
+            return;
         }
 
         await args.CompleteMessageAsync(args.Message, cancellationToken);
