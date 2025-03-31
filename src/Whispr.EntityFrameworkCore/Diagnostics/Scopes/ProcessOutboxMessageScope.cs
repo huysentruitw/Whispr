@@ -16,6 +16,7 @@ internal sealed class ProcessOutboxMessageScope(Activity activity) : IDisposable
 
     public ProcessOutboxMessageScope WithMessageType(string messageType)
     {
+        activity.DisplayName = $"Outbox processes {messageType}";
         activity.SetTag(TagNames.MessageType, messageType);
         return this;
     }

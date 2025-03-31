@@ -16,6 +16,7 @@ internal sealed class ConsumeScope(Activity activity) : IDisposable
 
     public ConsumeScope WithEnvelope(SerializedEnvelope envelope)
     {
+        activity.DisplayName = $"Consuming {envelope.MessageType}";
         activity.SetTag(TagNames.MessageId, envelope.MessageId);
         activity.SetTag(TagNames.MessageType, envelope.MessageType);
         return this;

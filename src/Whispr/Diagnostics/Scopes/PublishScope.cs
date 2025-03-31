@@ -11,6 +11,7 @@ internal sealed class PublishScope(Activity activity) : IDisposable
     public PublishScope WithEnvelope<TMessage>(Envelope<TMessage> envelope)
         where TMessage : class
     {
+        activity.DisplayName = $"Publishing {envelope.MessageType}";
         activity.SetTag(TagNames.MessageId, envelope.MessageId);
         activity.SetTag(TagNames.MessageType, envelope.MessageType);
         return this;

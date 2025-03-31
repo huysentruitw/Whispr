@@ -16,6 +16,7 @@ internal sealed class SendScope(Activity activity) : IDisposable
 
     public SendScope WithEnvelope(SerializedEnvelope envelope)
     {
+        activity.DisplayName = $"Sending {envelope.MessageType}";
         activity.SetTag(TagNames.MessageId, envelope.MessageId);
         activity.SetTag(TagNames.MessageType, envelope.MessageType);
         return this;
