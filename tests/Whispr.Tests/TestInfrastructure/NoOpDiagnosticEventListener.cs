@@ -11,5 +11,5 @@ public sealed class NoOpDiagnosticsEventListener : IDiagnosticEventListener
 
     public IDisposable Send(string topicName, SerializedEnvelope envelope) => new EmptyScope();
 
-    public IDisposable Consume(string queueName, SerializedEnvelope envelope) => new EmptyScope();
+    public IDisposable Consume(string handlerName, string queueName, SerializedEnvelope envelope) => new EmptyScope();
 }

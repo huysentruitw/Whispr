@@ -31,8 +31,9 @@ internal interface IDiagnosticEventListener
     /// <summary>
     /// Called when a message is consumed.
     /// </summary>
+    /// <param name="consumerName">The name of the consumer that is consuming the message.</param>
     /// <param name="queueName">The name of the queue from which the message is consumed.</param>
     /// <param name="envelope">The serialized envelope containing the message being consumed.</param>
     /// <returns>An <see cref="IDisposable"/> that can be used to stop listening to the event.</returns>
-    IDisposable Consume(string queueName, SerializedEnvelope envelope);
+    IDisposable Consume(string consumerName, string queueName, SerializedEnvelope envelope);
 }

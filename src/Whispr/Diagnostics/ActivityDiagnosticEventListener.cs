@@ -46,7 +46,7 @@ internal sealed class ActivityDiagnosticEventListener : IDiagnosticEventListener
             .WithEnvelope(envelope);
     }
 
-    public IDisposable Consume(string queueName, SerializedEnvelope envelope)
+    public IDisposable Consume(string messageHandlerName, string queueName, SerializedEnvelope envelope)
     {
         var activity = Source.CreateActivity(ConsumeScope.ActivityName, ActivityKind.Consumer);
 
@@ -56,6 +56,7 @@ internal sealed class ActivityDiagnosticEventListener : IDiagnosticEventListener
         activity.Start();
 
         return new ConsumeScope(activity)
+            .WithHandlerName(messageHandlerName)
             .WithQueueName(queueName)
             .WithEnvelope(envelope);
     }

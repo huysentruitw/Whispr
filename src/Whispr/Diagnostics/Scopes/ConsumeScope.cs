@@ -8,6 +8,12 @@ internal sealed class ConsumeScope(Activity activity) : IDisposable
 
     public const string ActivityName = "Whispr.Consume";
 
+    public ConsumeScope WithHandlerName(string handlerName)
+    {
+        activity.DisplayName = handlerName;
+        return this;
+    }
+    
     public ConsumeScope WithQueueName(string queueName)
     {
         activity.SetTag(TagNames.QueueName, queueName);
@@ -16,7 +22,6 @@ internal sealed class ConsumeScope(Activity activity) : IDisposable
 
     public ConsumeScope WithEnvelope(SerializedEnvelope envelope)
     {
-        activity.DisplayName = $"Consuming {envelope.MessageType}";
         activity.SetTag(TagNames.MessageId, envelope.MessageId);
         activity.SetTag(TagNames.MessageType, envelope.MessageType);
         return this;

@@ -9,7 +9,10 @@ internal sealed class MessageProcessor<TMessageHandler, TMessage>(
 {
     public ValueTask Process(string queueName, SerializedEnvelope serializedEnvelope, CancellationToken cancellationToken = default)
     {
-        using var _ = diagnosticEventListener.Consume(queueName, serializedEnvelope);
+        using var _ = diagnosticEventListener.Consume(
+            consumerName: typeof(TMessageHandler).Name,
+            queueName: queueName,
+            envelope: serializedEnvelope);
 
         var envelope = JsonSerializer.Deserialize<Envelope<TMessage>>(serializedEnvelope.Body)
             ?? throw new InvalidOperationException("Failed to deserialize message envelope");
