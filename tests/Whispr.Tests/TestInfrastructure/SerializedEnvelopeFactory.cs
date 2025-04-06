@@ -4,7 +4,7 @@ namespace Whispr.Tests.TestInfrastructure;
 
 public static class SerializedEnvelopeFactory
 {
-    public static SerializedEnvelope Create<TMessage>(TMessage message)
+    public static SerializedEnvelope Create<TMessage>(TMessage message, Dictionary<string, string>? headers = null)
         where TMessage : class
     {
         var envelope = new Envelope<TMessage>
@@ -12,7 +12,7 @@ public static class SerializedEnvelopeFactory
             MessageId = Guid.NewGuid().ToString("N"),
             Message = message,
             MessageType = typeof(TMessage).FullName!,
-            Headers = [],
+            Headers = headers ?? [],
             DestinationTopicName = "topic-abc",
             CorrelationId = Guid.NewGuid().ToString("N"),
             DeferredUntil = null,

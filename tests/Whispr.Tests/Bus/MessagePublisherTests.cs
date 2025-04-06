@@ -29,12 +29,12 @@ public sealed class MessagePublisherTests
     }
 
     [Fact]
-    public async Task Given_PublishFilters_When_Publish_Then_AppliesFiltersInReverseOrder()
+    public async Task Given_PublishFilters_When_Publish_Then_AppliesFiltersInRegistrationOrder()
     {
         // Arrange
         var filterCallOrder = new List<string>();
-        var filter1 = new TestPublishFilter("Filter1", filterCallOrder);
-        var filter2 = new TestPublishFilter("Filter2", filterCallOrder);
+        var filter1 = new TestPublishFilter(_ => filterCallOrder.Add("Filter1"));
+        var filter2 = new TestPublishFilter(_ => filterCallOrder.Add("Filter2"));
 
         var testHarness = TestHarness.Create([filter1, filter2]);
         var message = new TestMessage("Test content");
@@ -128,7 +128,9 @@ public sealed class MessagePublisherTests
         }
 
         public required MessagePublisher Publisher { get; internal init; }
+        
         public required Mock<IMessageSender> MessageSender { get; internal init; }
+        
         public Mock<IOutbox>? Outbox { get; internal init; }
 
         public void VerifyTransportNotUsed()
@@ -151,7 +153,7 @@ public sealed class MessagePublisherTests
         }
     }
 
-    private sealed class TestPublishFilter(string name, List<string> callOrder) : IPublishFilter
+    private sealed class TestPublishFilter(Action<object> publishAction) : IPublishFilter
     {
         public async ValueTask Publish<TMessage>(
             Envelope<TMessage> envelope,
@@ -159,7 +161,7 @@ public sealed class MessagePublisherTests
             CancellationToken cancellationToken)
             where TMessage : class
         {
-            callOrder.Add(name);
+            publishAction(envelope);
             await next(envelope, cancellationToken);
         }
     }

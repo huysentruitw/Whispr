@@ -24,12 +24,12 @@ public sealed class MessageProcessorTests
     }
 
     [Fact]
-    public async Task Given_ConsumeFilters_When_Process_Then_AppliesFiltersInReverseOrder()
+    public async Task Given_ConsumeFilters_When_Process_Then_AppliesFiltersInRegistrationOrder()
     {
         // Arrange
         var filterCallOrder = new List<string>();
-        var filter1 = new TestConsumeFilter("Filter1", filterCallOrder);
-        var filter2 = new TestConsumeFilter("Filter2", filterCallOrder);
+        var filter1 = new TestConsumeFilter(_ => filterCallOrder.Add("Filter1"));
+        var filter2 = new TestConsumeFilter(_ => filterCallOrder.Add("Filter2"));
 
         var testHarness = TestHarness<TestHandler, TestMessage>.Create([filter1, filter2]);
 
@@ -42,6 +42,37 @@ public sealed class MessageProcessorTests
         // Assert
         Assert.Equal(1, testHarness.Handler.HandleCallCount);
         Assert.Equal(["Filter1", "Filter2"], filterCallOrder);
+    }
+    
+    [Fact]
+    public async Task Given_ConsumeFilterExtractingHeaders_When_Process_Then_HeadersCanBeExtracted()
+    {
+        // Arrange
+        Dictionary<string, string>? extractedHeaders = null;
+        var filter = new TestConsumeFilter(x =>
+        {
+            var envelope = (Envelope<TestMessage>)x;
+            extractedHeaders = envelope.Headers;
+        });
+
+        var testHarness = TestHarness<TestHandler, TestMessage>.Create([filter]);
+
+        var message = new TestMessage("Test");
+        var serializedEnvelope = SerializedEnvelopeFactory.Create(message, new Dictionary<string, string>
+        {
+            { "Header1", "Value1" },
+            { "Header2", "Value2" },
+        });
+
+        // Act
+        await testHarness.Processor.Process("queue", serializedEnvelope, CancellationToken.None);
+
+        // Assert
+        Assert.NotNull(extractedHeaders);
+        Assert.Contains(extractedHeaders, x => x.Key == "Header1");
+        Assert.Equal("Value1", extractedHeaders["Header1"]);
+        Assert.Contains(extractedHeaders, x => x.Key == "Header2");
+        Assert.Equal("Value2", extractedHeaders["Header2"]);
     }
 
     [Fact]
@@ -99,7 +130,7 @@ public sealed class MessageProcessorTests
         }
     }
 
-    private sealed class TestConsumeFilter(string name, List<string> callOrder) : IConsumeFilter
+    private sealed class TestConsumeFilter(Action<object> consumeAction) : IConsumeFilter
     {
         public async ValueTask Consume<TMessage>(
             Envelope<TMessage> envelope,
@@ -107,10 +138,10 @@ public sealed class MessageProcessorTests
             CancellationToken cancellationToken)
             where TMessage : class
         {
-            callOrder.Add(name);
+            consumeAction(envelope);
             await next(envelope, cancellationToken);
         }
     }
-
+    
     private sealed record TestMessage(string Text);
 }

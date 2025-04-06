@@ -20,5 +20,6 @@ public sealed class WhisprBuilderTests
         // Assert
         Assert.NotNull(descriptors);
         Assert.Equal(builder.MessageHandlerDescriptors, descriptors);
+        Assert.Equal(builder.Services, services);
     }
 }

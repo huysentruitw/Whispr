@@ -54,7 +54,8 @@ public sealed class MessageBusInitializerTests
         public static TestHarness Create(IEnumerable<MessageHandlerDescriptor> descriptors)
         {
             var transportMock = new Mock<ITransport>();
-            var serviceProvider = new ServiceCollection().BuildServiceProvider();
+            var serviceProvider = new ServiceCollection()
+                .BuildServiceProvider();
 
             var initializer = new MessageBusInitializer(
                 descriptors,
