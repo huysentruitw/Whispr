@@ -133,6 +133,7 @@ public sealed class MessageProcessorTests
     private sealed class TestConsumeFilter(Action<object> consumeAction) : IConsumeFilter
     {
         public async ValueTask Consume<TMessage>(
+            string queueName,
             Envelope<TMessage> envelope,
             Func<Envelope<TMessage>, CancellationToken, ValueTask> next,
             CancellationToken cancellationToken)

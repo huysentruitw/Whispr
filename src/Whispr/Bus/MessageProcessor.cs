@@ -22,7 +22,7 @@ internal sealed class MessageProcessor<TMessageHandler, TMessage>(
         foreach (var consumeFilter in consumeFilters.Reverse())
         {
             var next = pipeline;
-            pipeline = (e, ct) => consumeFilter.Consume(e, next, ct);
+            pipeline = (e, ct) => consumeFilter.Consume(queueName, e, next, ct);
         }
 
         // Execute the consuming pipeline
