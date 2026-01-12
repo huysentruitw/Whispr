@@ -12,8 +12,7 @@ public sealed class SqlServerFixture : IAsyncLifetime
 
     public SqlServerFixture()
     {
-        _container = new MsSqlBuilder()
-            .WithImage("mcr.microsoft.com/mssql/server:2022-CU14-ubuntu-22.04")
+        _container = new MsSqlBuilder("mcr.microsoft.com/mssql/server:2022-CU14-ubuntu-22.04")
             .WithPassword("Password123!")
             .Build();
     }
