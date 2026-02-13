@@ -12,6 +12,7 @@ public static class SerializedEnvelopeFactory
             MessageId = Guid.NewGuid().ToString("N"),
             Message = message,
             MessageType = typeof(TMessage).FullName!,
+            PublishedAtUtc = DateTime.UtcNow,
             Headers = headers ?? [],
             DestinationTopicName = "topic-abc",
             CorrelationId = Guid.NewGuid().ToString("N"),

@@ -23,6 +23,12 @@ public sealed record Envelope<TMessage>
     public required string MessageType { get; init; }
 
     /// <summary>
+    /// The date and time when the message was published, in UTC.
+    /// </summary>
+    /// <remarks>Currently optional, to not break existing messages in transit. Otherwise, deserialization would fail.</remarks>
+    public DateTime? PublishedAtUtc { get; init; }
+    
+    /// <summary>
     /// The message headers.
     /// </summary>
     public required Dictionary<string, string> Headers { get; init; }

@@ -22,6 +22,7 @@ internal sealed class MessagePublisher(
             MessageId = Guid.NewGuid().ToString("N"),
             Message = message,
             MessageType = messageType,
+            PublishedAtUtc = DateTime.UtcNow,
             Headers = options.Headers,
             DestinationTopicName = topicNamingConvention.Format(typeof(TMessage)),
             CorrelationId = options.CorrelationId,
