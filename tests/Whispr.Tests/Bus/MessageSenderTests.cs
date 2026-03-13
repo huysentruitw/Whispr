@@ -54,7 +54,7 @@ public sealed class MessageSenderTests
             var transportMock = new Mock<ITransport>();
             var services = new ServiceCollection();
             foreach (var filter in filters)
-                services.AddScoped(_ => filter);
+                services.AddKeyedScoped<ISendFilter>("test", (_, _) => filter);
             
             var sender = new MessageSender(
                 services.BuildServiceProvider(),

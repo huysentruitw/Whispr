@@ -186,3 +186,112 @@ flowchart LR
     
     G[Transport] --> H[Consume Filters] --> I[Message Handler]
 ```
+
+## 🚍 Multi-Bus Support
+
+Whispr supports running multiple independent message buses in a single application. Each bus can have its own:
+
+- Transport configuration
+- Naming conventions
+- Filters
+- Message handlers
+- Outbox configuration
+
+This is useful when you need to communicate with multiple Service Bus namespaces or when you want to logically separate different types of messages.
+
+### Configuring Multiple Buses
+
+To configure multiple buses, call `AddWhispr` multiple times with different bus names:
+
+```csharp
+services
+    // First bus for orders
+    .AddWhispr("orders")
+        .AddAzureServiceBusTransport(options =>
+        {
+            options.ConnectionString = "Endpoint=sb://orders.servicebus.windows.net/...";
+        })
+        .AddTopicNamingConvention<DefaultTopicNamingConvention>()
+        .AddQueueNamingConvention<DefaultQueueNamingConvention>()
+        .AddSubscriptionNamingConvention<SubscriptionNamingConvention>()
+        .AddMessageHandlersFromAssembly(typeof(OrdersAssemblyMarker).Assembly);
+
+services
+    // Second bus for notifications
+    .AddWhispr("notifications")
+        .AddAzureServiceBusTransport(options =>
+        {
+            options.ConnectionString = "Endpoint=sb://notifications.servicebus.windows.net/...";
+        })
+        .AddTopicNamingConvention<DefaultTopicNamingConvention>()
+        .AddQueueNamingConvention<DefaultQueueNamingConvention>()
+        .AddSubscriptionNamingConvention<SubscriptionNamingConvention>()
+        .AddMessageHandlersFromAssembly(typeof(NotificationsAssemblyMarker).Assembly);
+```
+
+### Starting Multiple Buses
+
+When using multiple buses, use `IGlobalMessageBusInitializer` instead of `IMessageBusInitializer`:
+
+```csharp
+var app = builder.Build();
+
+// Start all registered buses
+await app.Services.GetRequiredService<IGlobalMessageBusInitializer>().Start();
+
+await app.RunAsync();
+```
+
+### Publishing to a Specific Bus
+
+Use `IMessagePublisherFactory` to get the publisher for a specific bus:
+
+```csharp
+public class MyService
+{
+    private readonly IMessagePublisherFactory _publisherFactory;
+
+    public MyService(IMessagePublisherFactory publisherFactory)
+    {
+        _publisherFactory = publisherFactory;
+    }
+
+    public async Task PublishOrderMessage(OrderCreated message)
+    {
+        var publisher = _publisherFactory.GetPublisher("orders");
+        await publisher.Publish(message);
+    }
+
+    public async Task PublishNotification(NotificationSent message)
+    {
+        var publisher = _publisherFactory.GetPublisher("notifications");
+        await publisher.Publish(message);
+    }
+}
+```
+
+### Default Bus
+
+If you don't specify a bus name when calling `AddWhispr()`, it uses "default" as the bus name. You can mix named and default buses:
+
+```csharp
+services
+    // Default bus
+    .AddWhispr()
+        .AddInMemoryTransport()
+        .AddMessageHandlersFromAssembly(typeof(LocalHandlers).Assembly);
+
+services
+    // Named bus for external communication
+    .AddWhispr("external")
+        .AddAzureServiceBusTransport(options => { /* ... */ })
+        .AddMessageHandlersFromAssembly(typeof(ExternalHandlers).Assembly);
+```
+
+To publish to the default bus, omit the bus name:
+
+```csharp
+var publisher = _publisherFactory.GetPublisher(); // Gets the "default" bus
+await publisher.Publish(message);
+```
+
