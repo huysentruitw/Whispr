@@ -154,8 +154,8 @@ public static class WhisprBuilderExtensions
 
     internal static WhisprBuilder RegisterBusConfiguration(this WhisprBuilder builder)
     {
-        // Register the bus configuration in the registry
-        builder.Services.AddSingleton(sp =>
+        // Register a service that will register the bus configuration in the registry when resolved
+        builder.Services.AddSingleton<IBusRegistrationMarker>(sp =>
         {
             var registry = sp.GetRequiredService<IBusRegistry>();
             registry.Register(builder.BusName, new BusConfiguration
@@ -163,7 +163,7 @@ public static class WhisprBuilderExtensions
                 BusName = builder.BusName,
                 MessageHandlerDescriptors = builder.MessageHandlerDescriptors
             });
-            return builder;
+            return new BusRegistrationMarker(builder.BusName);
         });
 
         // Register the handler descriptors as a keyed service
@@ -172,6 +172,17 @@ public static class WhisprBuilderExtensions
             builder.MessageHandlerDescriptors);
 
         return builder;
+    }
+
+    // Marker interface to track bus registrations
+    private interface IBusRegistrationMarker
+    {
+        string BusName { get; }
+    }
+
+    private sealed class BusRegistrationMarker(string busName) : IBusRegistrationMarker
+    {
+        public string BusName { get; } = busName;
     }
 
     #endregion

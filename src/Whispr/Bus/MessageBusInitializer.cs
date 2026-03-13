@@ -56,12 +56,13 @@ internal sealed class MessageBusInitializer(
         var consumeFilters = scope.ServiceProvider.GetKeyedServices<IConsumeFilter>(busName);
         var diagnosticListener = scope.ServiceProvider.GetRequiredKeyedService<IDiagnosticEventListener>(busName);
         
-        // Create the message processor
-        var processor = (IMessageProcessor)Activator.CreateInstance(
+        // Create the message processor using ActivatorUtilities for better flexibility
+        var processor = (IMessageProcessor)ActivatorUtilities.CreateInstance(
+            scope.ServiceProvider,
             messageProcessorType,
             consumeFilters,
             handler,
-            diagnosticListener)!;
+            diagnosticListener);
         
         await processor.Process(queueName, serializedEnvelope, cancellationToken);
     }
