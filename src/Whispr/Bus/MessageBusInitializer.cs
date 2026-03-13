@@ -54,7 +54,7 @@ internal sealed class MessageBusInitializer(
         
         // Get keyed services for this bus
         var consumeFilters = scope.ServiceProvider.GetKeyedServices<IConsumeFilter>(busName);
-        var diagnosticListener = scope.ServiceProvider.GetRequiredKeyedService<IDiagnosticEventListener>(busName);
+        var diagnosticListener = scope.ServiceProvider.GetRequiredService<IDiagnosticEventListener>();
         
         // Create the message processor using ActivatorUtilities for better flexibility
         var processor = (IMessageProcessor)ActivatorUtilities.CreateInstance(

@@ -32,12 +32,12 @@ public static class ServiceCollectionExtensions
                 sp.GetRequiredKeyedService<ITopicNamingConvention>(keyStr),
                 sp.GetRequiredKeyedService<ITransport>(keyStr),
                 sp,
-                sp.GetRequiredKeyedService<IDiagnosticEventListener>(keyStr),
+                sp.GetRequiredService<IDiagnosticEventListener>(),
                 sp.GetRequiredService<ILogger<MessageBusInitializer>>(),
                 keyStr);
         });
 
-        services.TryAddKeyedSingleton<IDiagnosticEventListener, ActivityDiagnosticEventListener>(actualBusName);
+        services.TryAddSingleton<IDiagnosticEventListener, ActivityDiagnosticEventListener>();
 
         services.TryAddKeyedSingleton<IMessageSender>(actualBusName, (sp, key) =>
         {
@@ -45,7 +45,7 @@ public static class ServiceCollectionExtensions
             return new MessageSender(
                 sp,
                 sp.GetRequiredKeyedService<ITransport>(keyStr),
-                sp.GetRequiredKeyedService<IDiagnosticEventListener>(keyStr),
+                sp.GetRequiredService<IDiagnosticEventListener>(),
                 keyStr);
         });
 
@@ -56,7 +56,7 @@ public static class ServiceCollectionExtensions
                 sp.GetKeyedServices<IPublishFilter>(keyStr),
                 sp.GetRequiredKeyedService<ITopicNamingConvention>(keyStr),
                 sp.GetRequiredKeyedService<IMessageSender>(keyStr),
-                sp.GetRequiredKeyedService<IDiagnosticEventListener>(keyStr),
+                sp.GetRequiredService<IDiagnosticEventListener>(),
                 sp.GetService<IOutbox>());
         });
 

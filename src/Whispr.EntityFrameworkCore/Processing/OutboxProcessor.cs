@@ -89,7 +89,7 @@ internal sealed class OutboxProcessor<TDbContext>(
     {
         try
         {
-            var diagnosticEventListener = serviceProvider.GetRequiredKeyedService<IDiagnosticEventListener>(busName);
+            var diagnosticEventListener = serviceProvider.GetRequiredService<IDiagnosticEventListener>();
             using var _ = diagnosticEventListener.ProcessOutboxMessage(outboxMessage);
             var envelope = CreateSerializedEnvelope(outboxMessage);
             await messageSender.Send(outboxMessage.DestinationTopicName, envelope, CancellationToken.None);

@@ -3,7 +3,7 @@
 /// <summary>
 /// Represents the message bus initializer.
 /// </summary>
-public interface IMessageBusInitializer
+internal interface IMessageBusInitializer
 {
     /// <summary>
     /// Starts the message bus.

@@ -56,7 +56,6 @@ public static class WhisprBuilderExtensions
                 sp);
         });
 
-        whisprBuilder.Services.TryAddKeyedSingleton<IDiagnosticEventListener, ActivityDiagnosticEventListener>(whisprBuilder.BusName);
         whisprBuilder.Services.TryAddScoped<IOutbox, Outbox<TDbContext>>();
 
         return whisprBuilder;
