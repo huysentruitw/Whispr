@@ -59,7 +59,8 @@ public sealed class MessageSenderTests
             var sender = new MessageSender(
                 services.BuildServiceProvider(),
                 transportMock.Object,
-                diagnosticEventListener: new NoOpDiagnosticsEventListener());
+                new NoOpDiagnosticsEventListener(),
+                "test");
 
             return new TestHarness
             {

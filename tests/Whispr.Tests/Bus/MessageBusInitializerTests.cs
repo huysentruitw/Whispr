@@ -64,7 +64,8 @@ public sealed class MessageBusInitializerTests
                 transportMock.Object,
                 serviceProvider,
                 new NoOpDiagnosticsEventListener(),
-                Mock.Of<ILogger<MessageBusInitializer>>());
+                Mock.Of<ILogger<MessageBusInitializer>>(),
+                "test");
 
             return new TestHarness { Initializer = initializer, Transport = transportMock };
         }

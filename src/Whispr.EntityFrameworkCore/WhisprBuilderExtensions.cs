@@ -51,9 +51,9 @@ public static class WhisprBuilderExtensions
             var logger = sp.GetRequiredService<ILogger<OutboxCleanupService<TDbContext>>>();
             
             return new OutboxCleanupService<TDbContext>(
-                sp,
                 Options.Create(options),
-                logger);
+                logger,
+                sp);
         });
 
         whisprBuilder.Services.TryAddKeyedSingleton<IDiagnosticEventListener, ActivityDiagnosticEventListener>(whisprBuilder.BusName);

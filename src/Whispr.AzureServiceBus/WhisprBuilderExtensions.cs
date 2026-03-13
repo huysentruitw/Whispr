@@ -1,5 +1,6 @@
 ﻿using Azure.Identity;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 using Whispr.AzureServiceBus.Conventions;
 using Whispr.AzureServiceBus.Management;
 using Whispr.AzureServiceBus.Transport;
@@ -23,70 +24,47 @@ public static class WhisprBuilderExtensions
         var optionsName = $"AzureServiceBus_{builder.BusName}";
         builder.Services.Configure<AzureServiceBusOptions>(optionsName, configureOptions);
 
-        // Register ServiceBusClient as keyed singleton for this bus
-        builder.Services.TryAddKeyedSingleton<ServiceBusClient>(builder.BusName, (serviceProvider, key) =>
+        // Register the transport as a keyed singleton for this bus
+        builder.Services.TryAddKeyedSingleton<ITransport>(builder.BusName, (serviceProvider, key) =>
         {
+            var keyStr = key?.ToString() ?? "default";
             var options = serviceProvider.GetRequiredService<IOptionsSnapshot<AzureServiceBusOptions>>().Get(optionsName);
 
-            if (!string.IsNullOrEmpty(options.HostName))
-                return new ServiceBusClient(options.HostName, options.TokenCredential ?? new DefaultAzureCredential());
-
-            if (!string.IsNullOrEmpty(options.ConnectionString))
-                return new ServiceBusClient(options.ConnectionString);
-
-            throw new InvalidOperationException("Either HostName or ConnectionString must be provided.");
-        });
-
-        // Register ServiceBusAdministrationClient as keyed singleton for this bus
-        builder.Services.TryAddKeyedSingleton<ServiceBusAdministrationClient>(builder.BusName, (serviceProvider, key) =>
-        {
-            var options = serviceProvider.GetRequiredService<IOptionsSnapshot<AzureServiceBusOptions>>().Get(optionsName);
+            // Create ServiceBusClient
+            ServiceBusClient serviceBusClient;
+            ServiceBusAdministrationClient serviceBusAdministrationClient;
 
             if (!string.IsNullOrEmpty(options.HostName))
-                return new ServiceBusAdministrationClient(options.HostName, options.TokenCredential ?? new DefaultAzureCredential());
+            {
+                var credential = options.TokenCredential ?? new DefaultAzureCredential();
+                serviceBusClient = new ServiceBusClient(options.HostName, credential);
+                serviceBusAdministrationClient = new ServiceBusAdministrationClient(options.HostName, credential);
+            }
+            else if (!string.IsNullOrEmpty(options.ConnectionString))
+            {
+                serviceBusClient = new ServiceBusClient(options.ConnectionString);
+                serviceBusAdministrationClient = new ServiceBusAdministrationClient(options.ConnectionString);
+            }
+            else
+            {
+                throw new InvalidOperationException("Either HostName or ConnectionString must be provided.");
+            }
 
-            if (!string.IsNullOrEmpty(options.ConnectionString))
-                return new ServiceBusAdministrationClient(options.ConnectionString);
+            // Create support services
+            var entityManager = new EntityManager(serviceBusAdministrationClient);
+            var senderFactory = new SenderFactory(serviceBusClient);
+            var processorFactory = new ProcessorFactory(serviceBusClient);
+            var subscriptionNamingConvention = serviceProvider.GetRequiredKeyedService<ISubscriptionNamingConvention>(keyStr);
+            var logger = serviceProvider.GetRequiredService<ILogger<ServiceBusTransport>>();
 
-            throw new InvalidOperationException("Either HostName or ConnectionString must be provided.");
-        });
-
-        // Register per-bus services with keyed DI
-        builder.Services.TryAddKeyedSingleton<EntityManager>(builder.BusName, (sp, key) =>
-        {
-            var keyStr = key?.ToString() ?? "default";
-            return new EntityManager(
-                sp.GetRequiredKeyedService<ServiceBusAdministrationClient>(keyStr),
-                sp.GetRequiredKeyedService<IQueueNamingConvention>(keyStr),
-                sp.GetRequiredKeyedService<ITopicNamingConvention>(keyStr),
-                sp.GetRequiredKeyedService<ISubscriptionNamingConvention>(keyStr),
-                sp.GetRequiredService<ILogger<EntityManager>>());
-        });
-
-        builder.Services.TryAddKeyedSingleton<SenderFactory>(builder.BusName, (sp, key) =>
-        {
-            var keyStr = key?.ToString() ?? "default";
-            return new SenderFactory(
-                sp.GetRequiredKeyedService<ServiceBusClient>(keyStr));
-        });
-
-        builder.Services.TryAddKeyedSingleton<ProcessorFactory>(builder.BusName, (sp, key) =>
-        {
-            var keyStr = key?.ToString() ?? "default";
-            var options = sp.GetRequiredService<IOptionsSnapshot<AzureServiceBusOptions>>().Get(optionsName);
-            return new ProcessorFactory(
-                sp.GetRequiredKeyedService<ServiceBusClient>(keyStr),
-                options);
-        });
-
-        builder.Services.TryAddKeyedSingleton<ITransport, ServiceBusTransport>(builder.BusName, (sp, key) =>
-        {
-            var keyStr = key?.ToString() ?? "default";
+            // Create and return transport
             return new ServiceBusTransport(
-                sp.GetRequiredKeyedService<EntityManager>(keyStr),
-                sp.GetRequiredKeyedService<SenderFactory>(keyStr),
-                sp.GetRequiredKeyedService<ProcessorFactory>(keyStr),
-                sp.GetRequiredService<ILogger<ServiceBusTransport>>());
+                senderFactory,
+                processorFactory,
+                entityManager,
+                subscriptionNamingConvention,
+                Options.Create(options),
+                logger);
         });
 
         return builder;
