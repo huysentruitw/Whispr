@@ -1,4 +1,5 @@
 ﻿using Azure.Identity;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Whispr.AzureServiceBus.Conventions;
 using Whispr.AzureServiceBus.Management;
 using Whispr.AzureServiceBus.Transport;
@@ -18,36 +19,75 @@ public static class WhisprBuilderExtensions
     /// <returns>The <see cref="WhisprBuilder"/>.</returns>
     public static WhisprBuilder AddAzureServiceBusTransport(this WhisprBuilder builder, Action<AzureServiceBusOptions> configureOptions)
     {
-        builder.Services
-            .Configure(configureOptions)
-            .AddSingleton<ServiceBusClient>(serviceProvider =>
-            {
-                var options = serviceProvider.GetRequiredService<IOptions<AzureServiceBusOptions>>().Value;
+        // Configure options with a unique key per bus
+        var optionsName = $"AzureServiceBus_{builder.BusName}";
+        builder.Services.Configure<AzureServiceBusOptions>(optionsName, configureOptions);
 
-                if (!string.IsNullOrEmpty(options.HostName))
-                    return new ServiceBusClient(options.HostName, options.TokenCredential ?? new DefaultAzureCredential());
+        // Register ServiceBusClient as keyed singleton for this bus
+        builder.Services.TryAddKeyedSingleton<ServiceBusClient>(builder.BusName, (serviceProvider, key) =>
+        {
+            var options = serviceProvider.GetRequiredService<IOptionsSnapshot<AzureServiceBusOptions>>().Get(optionsName);
 
-                if (!string.IsNullOrEmpty(options.ConnectionString))
-                    return new ServiceBusClient(options.ConnectionString);
+            if (!string.IsNullOrEmpty(options.HostName))
+                return new ServiceBusClient(options.HostName, options.TokenCredential ?? new DefaultAzureCredential());
 
-                throw new InvalidOperationException("Either HostName or ConnectionString must be provided.");
-            })
-            .AddSingleton<ServiceBusAdministrationClient>(serviceProvider =>
-            {
-                var options = serviceProvider.GetRequiredService<IOptions<AzureServiceBusOptions>>().Value;
+            if (!string.IsNullOrEmpty(options.ConnectionString))
+                return new ServiceBusClient(options.ConnectionString);
 
-                if (!string.IsNullOrEmpty(options.HostName))
-                    return new ServiceBusAdministrationClient(options.HostName, options.TokenCredential ?? new DefaultAzureCredential());
+            throw new InvalidOperationException("Either HostName or ConnectionString must be provided.");
+        });
 
-                if (!string.IsNullOrEmpty(options.ConnectionString))
-                    return new ServiceBusAdministrationClient(options.ConnectionString);
+        // Register ServiceBusAdministrationClient as keyed singleton for this bus
+        builder.Services.TryAddKeyedSingleton<ServiceBusAdministrationClient>(builder.BusName, (serviceProvider, key) =>
+        {
+            var options = serviceProvider.GetRequiredService<IOptionsSnapshot<AzureServiceBusOptions>>().Get(optionsName);
 
-                throw new InvalidOperationException("Either HostName or ConnectionString must be provided.");
-            })
-            .AddSingleton<EntityManager>()
-            .AddSingleton<SenderFactory>()
-            .AddSingleton<ProcessorFactory>()
-            .AddSingleton<ITransport, ServiceBusTransport>();
+            if (!string.IsNullOrEmpty(options.HostName))
+                return new ServiceBusAdministrationClient(options.HostName, options.TokenCredential ?? new DefaultAzureCredential());
+
+            if (!string.IsNullOrEmpty(options.ConnectionString))
+                return new ServiceBusAdministrationClient(options.ConnectionString);
+
+            throw new InvalidOperationException("Either HostName or ConnectionString must be provided.");
+        });
+
+        // Register per-bus services with keyed DI
+        builder.Services.TryAddKeyedSingleton<EntityManager>(builder.BusName, (sp, key) =>
+        {
+            var keyStr = key?.ToString() ?? "default";
+            return new EntityManager(
+                sp.GetRequiredKeyedService<ServiceBusAdministrationClient>(keyStr),
+                sp.GetRequiredKeyedService<IQueueNamingConvention>(keyStr),
+                sp.GetRequiredKeyedService<ITopicNamingConvention>(keyStr),
+                sp.GetRequiredKeyedService<ISubscriptionNamingConvention>(keyStr),
+                sp.GetRequiredService<ILogger<EntityManager>>());
+        });
+
+        builder.Services.TryAddKeyedSingleton<SenderFactory>(builder.BusName, (sp, key) =>
+        {
+            var keyStr = key?.ToString() ?? "default";
+            return new SenderFactory(
+                sp.GetRequiredKeyedService<ServiceBusClient>(keyStr));
+        });
+
+        builder.Services.TryAddKeyedSingleton<ProcessorFactory>(builder.BusName, (sp, key) =>
+        {
+            var keyStr = key?.ToString() ?? "default";
+            var options = sp.GetRequiredService<IOptionsSnapshot<AzureServiceBusOptions>>().Get(optionsName);
+            return new ProcessorFactory(
+                sp.GetRequiredKeyedService<ServiceBusClient>(keyStr),
+                options);
+        });
+
+        builder.Services.TryAddKeyedSingleton<ITransport, ServiceBusTransport>(builder.BusName, (sp, key) =>
+        {
+            var keyStr = key?.ToString() ?? "default";
+            return new ServiceBusTransport(
+                sp.GetRequiredKeyedService<EntityManager>(keyStr),
+                sp.GetRequiredKeyedService<SenderFactory>(keyStr),
+                sp.GetRequiredKeyedService<ProcessorFactory>(keyStr),
+                sp.GetRequiredService<ILogger<ServiceBusTransport>>());
+        });
 
         return builder;
     }
@@ -60,7 +100,7 @@ public static class WhisprBuilderExtensions
     /// <returns>The <see cref="WhisprBuilder"/>.</returns>
     public static WhisprBuilder AddSubscriptionNamingConvention<T>(this WhisprBuilder builder) where T : class, ISubscriptionNamingConvention
     {
-        builder.Services.AddSingleton<ISubscriptionNamingConvention, T>();
+        builder.Services.TryAddKeyedSingleton<ISubscriptionNamingConvention, T>(builder.BusName);
         return builder;
     }
 }

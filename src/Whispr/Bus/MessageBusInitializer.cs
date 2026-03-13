@@ -8,17 +8,18 @@ internal sealed class MessageBusInitializer(
     ITransport transport,
     IServiceProvider serviceProvider,
     IDiagnosticEventListener diagnosticEventListener,
-    ILogger<MessageBusInitializer> logger) : IMessageBusInitializer
+    ILogger<MessageBusInitializer> logger,
+    string busName) : IMessageBusInitializer
 {
     public async ValueTask Start(CancellationToken cancellationToken = default)
     {
         using var _ = diagnosticEventListener.Start();
 
-        logger.LogInformation("Starting message bus...");
+        logger.LogInformation("Starting message bus '{BusName}'...", busName);
 
         await StartListeners(cancellationToken);
 
-        logger.LogInformation("Message bus started!");
+        logger.LogInformation("Message bus '{BusName}' started!", busName);
     }
 
     private async ValueTask StartListeners(CancellationToken cancellationToken = default)
@@ -28,7 +29,7 @@ internal sealed class MessageBusInitializer(
             {
                 var queueName = queueNamingConvention.Format(descriptor.HandlerType);
                 var topicNames = descriptor.MessageTypes.Select(topicNamingConvention.Format).ToArray();
-                logger.LogInformation("Starting listener for queue: {QueueName} and topics: {TopicNames}", queueName, topicNames);
+                logger.LogInformation("Starting listener for bus '{BusName}', queue: {QueueName} and topics: {TopicNames}", busName, queueName, topicNames);
                 return transport.StartListener(queueName, topicNames, (se, ct) => MessageCallback(descriptor, queueName, se, ct), cancellationToken).AsTask();
             });
 
@@ -47,7 +48,21 @@ internal sealed class MessageBusInitializer(
         var messageProcessorType = typeof(MessageProcessor<,>).MakeGenericType(descriptor.HandlerType, messageType);
 
         await using var scope = serviceProvider.CreateAsyncScope();
-        var processor = (IMessageProcessor)scope.ServiceProvider.GetRequiredService(messageProcessorType);
+        
+        // Get the handler
+        var handler = scope.ServiceProvider.GetRequiredService(descriptor.HandlerType);
+        
+        // Get keyed services for this bus
+        var consumeFilters = scope.ServiceProvider.GetKeyedServices<IConsumeFilter>(busName);
+        var diagnosticListener = scope.ServiceProvider.GetRequiredKeyedService<IDiagnosticEventListener>(busName);
+        
+        // Create the message processor
+        var processor = (IMessageProcessor)Activator.CreateInstance(
+            messageProcessorType,
+            consumeFilters,
+            handler,
+            diagnosticListener)!;
+        
         await processor.Process(queueName, serializedEnvelope, cancellationToken);
     }
 }

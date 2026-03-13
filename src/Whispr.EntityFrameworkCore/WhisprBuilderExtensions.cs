@@ -1,4 +1,5 @@
-﻿using Whispr.Builder;
+﻿using Microsoft.Extensions.DependencyInjection.Extensions;
+using Whispr.Builder;
 using Whispr.EntityFrameworkCore.Cleaning;
 
 namespace Whispr.EntityFrameworkCore;
@@ -18,15 +19,45 @@ public static class WhisprBuilderExtensions
     public static WhisprBuilder AddOutbox<TDbContext>(this WhisprBuilder whisprBuilder, Action<OutboxOptions>? optionsAction = null)
         where TDbContext : DbContext
     {
+        // Configure options with a unique key per bus
+        var optionsName = $"Outbox_{whisprBuilder.BusName}";
         if (optionsAction is not null)
-            whisprBuilder.Services.Configure(optionsAction);
+            whisprBuilder.Services.Configure<OutboxOptions>(optionsName, optionsAction);
 
-        whisprBuilder.Services
-            .AddHostedService<OutboxProcessor<TDbContext>>()
-            .AddSingleton<OutboxProcessorTrigger<TDbContext>>()
-            .AddSingleton<IDiagnosticEventListener, ActivityDiagnosticEventListener>()
-            .AddHostedService<OutboxCleanupService<TDbContext>>()
-            .AddScoped<IOutbox, Outbox<TDbContext>>();
+        // Register per-bus outbox services
+        whisprBuilder.Services.TryAddKeyedSingleton<OutboxProcessorTrigger<TDbContext>>(whisprBuilder.BusName);
+        
+        // Register hosted service for outbox processor (one per bus)
+        whisprBuilder.Services.AddSingleton<IHostedService>(sp =>
+        {
+            var options = sp.GetRequiredService<IOptionsSnapshot<OutboxOptions>>().Get(optionsName);
+            var logger = sp.GetRequiredService<ILogger<OutboxProcessor<TDbContext>>>();
+            var trigger = sp.GetRequiredKeyedService<OutboxProcessorTrigger<TDbContext>>(whisprBuilder.BusName);
+            var sender = sp.GetRequiredKeyedService<IMessageSender>(whisprBuilder.BusName);
+            
+            return new OutboxProcessor<TDbContext>(
+                sp,
+                Options.Create(options),
+                logger,
+                trigger,
+                sender,
+                whisprBuilder.BusName);
+        });
+
+        // Register hosted service for outbox cleanup (one per bus)
+        whisprBuilder.Services.AddSingleton<IHostedService>(sp =>
+        {
+            var options = sp.GetRequiredService<IOptionsSnapshot<OutboxOptions>>().Get(optionsName);
+            var logger = sp.GetRequiredService<ILogger<OutboxCleanupService<TDbContext>>>();
+            
+            return new OutboxCleanupService<TDbContext>(
+                sp,
+                Options.Create(options),
+                logger);
+        });
+
+        whisprBuilder.Services.TryAddKeyedSingleton<IDiagnosticEventListener, ActivityDiagnosticEventListener>(whisprBuilder.BusName);
+        whisprBuilder.Services.TryAddScoped<IOutbox, Outbox<TDbContext>>();
 
         return whisprBuilder;
     }

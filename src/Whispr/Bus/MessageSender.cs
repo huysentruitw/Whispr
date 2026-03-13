@@ -3,14 +3,15 @@
 internal sealed class MessageSender(
     IServiceProvider serviceProvider,
     ITransport transport,
-    IDiagnosticEventListener diagnosticEventListener) : IMessageSender
+    IDiagnosticEventListener diagnosticEventListener,
+    string busName) : IMessageSender
 {
     public ValueTask Send(string topicName, SerializedEnvelope envelope, CancellationToken cancellationToken)
     {
         using var _ = diagnosticEventListener.Send(topicName, envelope);
 
         using var scope = serviceProvider.CreateScope();
-        var sendFilters = scope.ServiceProvider.GetServices<ISendFilter>().ToArray();
+        var sendFilters = scope.ServiceProvider.GetKeyedServices<ISendFilter>(busName).ToArray();
 
         // Build the sending pipeline
         Func<string, SerializedEnvelope, CancellationToken, ValueTask> pipeline = transport.Send;

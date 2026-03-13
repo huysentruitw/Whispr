@@ -1,12 +1,12 @@
 ﻿namespace Whispr.EntityFrameworkCore.Processing;
 
 internal sealed class OutboxProcessor<TDbContext>(
+    IServiceProvider serviceProvider,
+    IOptions<OutboxOptions> options,
+    ILogger<OutboxProcessor<TDbContext>> logger,
     OutboxProcessorTrigger<TDbContext> trigger,
     IMessageSender messageSender,
-    IOptions<OutboxOptions> options,
-    IServiceProvider serviceProvider,
-    IDiagnosticEventListener diagnosticEventListener,
-    ILogger<OutboxProcessor<TDbContext>> logger) : BackgroundService
+    string busName) : BackgroundService
     where TDbContext : DbContext
 {
     private readonly TimeSpan _queryDelay = options.Value.QueryDelay;
@@ -17,6 +17,8 @@ internal sealed class OutboxProcessor<TDbContext>(
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        logger.LogInformation("Starting outbox processor for bus '{BusName}'...", busName);
+        
         while (!stoppingToken.IsCancellationRequested)
         {
             await trigger.Wait(_idleQueryDelay, stoppingToken);
@@ -87,6 +89,7 @@ internal sealed class OutboxProcessor<TDbContext>(
     {
         try
         {
+            var diagnosticEventListener = serviceProvider.GetRequiredKeyedService<IDiagnosticEventListener>(busName);
             using var _ = diagnosticEventListener.ProcessOutboxMessage(outboxMessage);
             var envelope = CreateSerializedEnvelope(outboxMessage);
             await messageSender.Send(outboxMessage.DestinationTopicName, envelope, CancellationToken.None);

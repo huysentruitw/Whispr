@@ -5,12 +5,18 @@
 /// </summary>
 public sealed class WhisprBuilder
 {
-    internal WhisprBuilder(IServiceCollection services)
+    internal WhisprBuilder(IServiceCollection services, string busName)
     {
-        Services = services.AddSingleton<IEnumerable<MessageHandlerDescriptor>>(MessageHandlerDescriptors);
+        Services = services;
+        BusName = busName;
     }
 
     internal List<MessageHandlerDescriptor> MessageHandlerDescriptors { get; } = [];
+
+    /// <summary>
+    /// Gets the name of the bus being configured.
+    /// </summary>
+    public string BusName { get; }
 
     /// <summary>
     /// Gets the original <see cref="IServiceCollection"/> to continue configuring other services.

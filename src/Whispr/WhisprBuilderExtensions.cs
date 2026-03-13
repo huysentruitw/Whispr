@@ -37,7 +37,7 @@ public static class WhisprBuilderExtensions
             });
         }
 
-        return builder;
+        return builder.RegisterBusConfiguration();
     }
 
     private static bool IsMessageHandler(Type type)
@@ -57,7 +57,7 @@ public static class WhisprBuilderExtensions
     public static WhisprBuilder AddTopicNamingConvention<TNamingConvention>(this WhisprBuilder builder)
         where TNamingConvention : class, ITopicNamingConvention
     {
-        builder.Services.TryAddSingleton<ITopicNamingConvention, TNamingConvention>();
+        builder.Services.TryAddKeyedSingleton<ITopicNamingConvention, TNamingConvention>(builder.BusName);
         return builder;
     }
 
@@ -78,7 +78,7 @@ public static class WhisprBuilderExtensions
     public static WhisprBuilder AddQueueNamingConvention<TNamingConvention>(this WhisprBuilder builder)
         where TNamingConvention : class, IQueueNamingConvention
     {
-        builder.Services.TryAddSingleton<IQueueNamingConvention, TNamingConvention>();
+        builder.Services.TryAddKeyedSingleton<IQueueNamingConvention, TNamingConvention>(builder.BusName);
         return builder;
     }
 
@@ -103,7 +103,7 @@ public static class WhisprBuilderExtensions
     public static WhisprBuilder AddPublishFilter<TFilter>(this WhisprBuilder builder)
         where TFilter : class, IPublishFilter
     {
-        builder.Services.AddScoped<IPublishFilter, TFilter>();
+        builder.Services.AddKeyedScoped<IPublishFilter, TFilter>(builder.BusName);
         return builder;
     }
 
@@ -116,7 +116,7 @@ public static class WhisprBuilderExtensions
     public static WhisprBuilder AddSendFilter<TFilter>(this WhisprBuilder builder)
         where TFilter : class, ISendFilter
     {
-        builder.Services.AddScoped<ISendFilter, TFilter>();
+        builder.Services.AddKeyedScoped<ISendFilter, TFilter>(builder.BusName);
         return builder;
     }
 
@@ -129,7 +129,7 @@ public static class WhisprBuilderExtensions
     public static WhisprBuilder AddConsumeFilter<TFilter>(this WhisprBuilder builder)
         where TFilter : class, IConsumeFilter
     {
-        builder.Services.AddScoped<IConsumeFilter, TFilter>();
+        builder.Services.AddKeyedScoped<IConsumeFilter, TFilter>(builder.BusName);
         return builder;
     }
 
@@ -144,7 +144,33 @@ public static class WhisprBuilderExtensions
     /// <returns>The <see cref="WhisprBuilder"/>.</returns>
     public static WhisprBuilder AddInMemoryTransport(this WhisprBuilder builder)
     {
-        builder.Services.AddSingleton<ITransport, InMemoryTransport>();
+        builder.Services.AddKeyedSingleton<ITransport, InMemoryTransport>(builder.BusName);
+        return builder;
+    }
+
+    #endregion
+
+    #region Internal
+
+    internal static WhisprBuilder RegisterBusConfiguration(this WhisprBuilder builder)
+    {
+        // Register the bus configuration in the registry
+        builder.Services.AddSingleton(sp =>
+        {
+            var registry = sp.GetRequiredService<IBusRegistry>();
+            registry.Register(builder.BusName, new BusConfiguration
+            {
+                BusName = builder.BusName,
+                MessageHandlerDescriptors = builder.MessageHandlerDescriptors
+            });
+            return builder;
+        });
+
+        // Register the handler descriptors as a keyed service
+        builder.Services.AddKeyedSingleton<IEnumerable<MessageHandlerDescriptor>>(
+            builder.BusName,
+            builder.MessageHandlerDescriptors);
+
         return builder;
     }
 
