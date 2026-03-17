@@ -5,9 +5,10 @@
 /// </summary>
 public sealed class WhisprBuilder
 {
-    internal WhisprBuilder(IServiceCollection services)
+    internal WhisprBuilder(IServiceCollection services, string busName)
     {
-        Services = services.AddSingleton<IEnumerable<MessageHandlerDescriptor>>(MessageHandlerDescriptors);
+        Services = services.AddKeyedSingleton<IEnumerable<MessageHandlerDescriptor>>(busName, MessageHandlerDescriptors);
+        BusName = busName;
     }
 
     internal List<MessageHandlerDescriptor> MessageHandlerDescriptors { get; } = [];
@@ -16,4 +17,9 @@ public sealed class WhisprBuilder
     /// Gets the original <see cref="IServiceCollection"/> to continue configuring other services.
     /// </summary>
     public IServiceCollection Services { get; }
+    
+    /// <summary>
+    /// Gets the name of the bus.
+    /// </summary>
+    public string BusName { get; }
 }

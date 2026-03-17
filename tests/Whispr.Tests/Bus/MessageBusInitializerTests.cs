@@ -58,11 +58,12 @@ public sealed class MessageBusInitializerTests
                 .BuildServiceProvider();
 
             var initializer = new MessageBusInitializer(
+                "BusName",
                 descriptors,
                 CreateQueueNamingConvention(),
                 CreateTopicNamingConvention(),
                 transportMock.Object,
-                serviceProvider,
+                serviceProvider.GetRequiredService<IServiceScopeFactory>(),
                 new NoOpDiagnosticsEventListener(),
                 Mock.Of<ILogger<MessageBusInitializer>>());
 

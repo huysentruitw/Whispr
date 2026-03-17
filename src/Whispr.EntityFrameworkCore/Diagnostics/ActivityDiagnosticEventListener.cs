@@ -6,7 +6,7 @@ namespace Whispr.EntityFrameworkCore.Diagnostics;
 
 internal sealed class ActivityDiagnosticEventListener : IDiagnosticEventListener
 {
-    public IDisposable ProcessOutboxMessage(OutboxMessage outboxMessage)
+    public IDisposable ProcessOutboxMessage(string busName, OutboxMessage outboxMessage)
     {
         ActivityContext.TryParse(outboxMessage.TraceParent, null, out var parentContext);
 
@@ -21,6 +21,7 @@ internal sealed class ActivityDiagnosticEventListener : IDiagnosticEventListener
         activity.Start();
 
         return new ProcessOutboxMessageScope(activity)
+            .WithBusName(busName)
             .WithMessageId(outboxMessage.MessageId)
             .WithMessageType(outboxMessage.MessageType);
     }

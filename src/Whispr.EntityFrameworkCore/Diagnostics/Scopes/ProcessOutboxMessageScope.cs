@@ -8,6 +8,12 @@ internal sealed class ProcessOutboxMessageScope(Activity activity) : IDisposable
 
     public const string ActivityName = "Whispr.ProcessOutboxMessage";
 
+    public ProcessOutboxMessageScope WithBusName(string busName)
+    {
+        activity.SetTag(TagNames.BusName, busName);
+        return this;
+    }
+    
     public ProcessOutboxMessageScope WithMessageId(string messageId)
     {
         activity.SetTag(TagNames.MessageId, messageId);

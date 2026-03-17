@@ -11,7 +11,7 @@ public sealed class WhisprBuilderTests
     {
         // Arrange
         var services = new ServiceCollection();
-        var builder = new WhisprBuilder(services);
+        var builder = new WhisprBuilder(services, "BusName");
         var serviceProvider = services.BuildServiceProvider();
 
         // Act

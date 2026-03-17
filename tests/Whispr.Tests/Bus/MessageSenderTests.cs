@@ -54,10 +54,13 @@ public sealed class MessageSenderTests
             var transportMock = new Mock<ITransport>();
             var services = new ServiceCollection();
             foreach (var filter in filters)
-                services.AddScoped(_ => filter);
+                services.AddKeyedScoped(serviceKey: "BusName", implementationFactory: (_, _) => filter);
+            
+            var serviceProvider = services.BuildServiceProvider();
             
             var sender = new MessageSender(
-                services.BuildServiceProvider(),
+                "BusName",
+                serviceProvider.GetRequiredService<IServiceScopeFactory>(),
                 transportMock.Object,
                 diagnosticEventListener: new NoOpDiagnosticsEventListener());
 
