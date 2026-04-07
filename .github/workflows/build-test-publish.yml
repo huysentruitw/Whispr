@@ -21,12 +21,14 @@ jobs:
     - name: Fetch all history for all tags and branches
       run: git fetch --prune --unshallow
     - name: Install GitVersion
-      uses: gittools/actions/gitversion/setup@v1.1.1
+      uses: gittools/actions/gitversion/setup@v4.4.2
       with:
-          versionSpec: '5.x'
+        versionSpec: '6.7.x'
     - name: Use GitVersion
       id: gitversion # step id used as reference for output values
-      uses: gittools/actions/gitversion/execute@v1.1.1
+      uses: gittools/actions/gitversion/execute@v4.4.2
+      with:
+        workflow: GitHubFlow/v1
     - name: Setup .NET 8
       uses: actions/setup-dotnet@v1
       with:
