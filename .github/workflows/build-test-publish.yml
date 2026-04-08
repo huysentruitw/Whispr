@@ -18,17 +18,17 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: Fetch all history for all tags and branches
-      run: git fetch --prune --unshallow
+      with:
+        fetch-depth: 0
     - name: Install GitVersion
-      uses: gittools/actions/gitversion/setup@v4.4.2
+      uses: gittools/actions/gitversion/setup@v4
       with:
         versionSpec: '6.7.x'
     - name: Use GitVersion
-      id: gitversion # step id used as reference for output values
-      uses: gittools/actions/gitversion/execute@v4.4.2
+      uses: gittools/actions/gitversion/execute@v4
       with:
-        workflow: GitHubFlow/v1
+        disableCache: true
+        configFilePath: 'GitVersion.yml'
     - name: Setup .NET 8
       uses: actions/setup-dotnet@v1
       with:
