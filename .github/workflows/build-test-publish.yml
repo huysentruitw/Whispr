@@ -29,6 +29,20 @@ jobs:
       with:
         disableCache: true
         configFilePath: 'GitVersion.yml'
+    - name: Compute NuGet version
+      shell: pwsh
+      run: |
+        $base = "${{ env.GitVersion_MajorMinorPatch }}"
+        $label = "${{ env.GitVersion_PreReleaseLabel }}"
+        if ($label) {
+          $number = [int]"${{ env.GitVersion_CommitsSinceVersionSource }}"
+          $padded = $number.ToString("D4")
+          $version = "$base-$label$padded"
+        } else {
+          $version = $base
+        }
+        "NUGET_VERSION=$version" >> $env:GITHUB_ENV
+        Write-Host "NuGet version: $version"
     - name: Setup .NET 8
       uses: actions/setup-dotnet@v1
       with:
@@ -40,7 +54,7 @@ jobs:
     - name: Install dependencies
       run: dotnet restore
     - name: Build
-      run: dotnet build --configuration Release --no-restore /p:Version=${{ steps.gitversion.outputs.nuGetVersionV2 }}
+      run: dotnet build --configuration Release --no-restore /p:Version=${{ env.NUGET_VERSION }}
     - name: Test
       env:
         AzureServiceBus__ConnectionString: ${{ secrets.AZURESERVICEBUS__CONNECTIONSTRING }}
