@@ -62,6 +62,24 @@ public static class WhisprBuilderExtensions
     }
 
     /// <summary>
+    /// Adds a topic naming convention using a factory method.
+    /// </summary>
+    /// <param name="builder">The <see cref="WhisprBuilder"/>.</param>
+    /// <param name="factory">A factory function that creates the naming convention instance. The function receives the service provider and bus name.</param>
+    /// <typeparam name="TNamingConvention">The type of the topic naming convention.</typeparam>
+    /// <returns>The <see cref="WhisprBuilder"/>.</returns>
+    public static WhisprBuilder AddTopicNamingConvention<TNamingConvention>(
+        this WhisprBuilder builder,
+        Func<IServiceProvider, string, TNamingConvention> factory)
+        where TNamingConvention : class, ITopicNamingConvention
+    {
+        builder.Services.AddKeyedSingleton<ITopicNamingConvention>(
+            builder.BusName,
+            (sp, key) => factory(sp, (string)key!));
+        return builder;
+    }
+
+    /// <summary>
     /// Adds the default topic naming convention.
     /// </summary>
     /// <param name="builder">The <see cref="WhisprBuilder"/>.</param>
@@ -79,6 +97,24 @@ public static class WhisprBuilderExtensions
         where TNamingConvention : class, IQueueNamingConvention
     {
         builder.Services.AddKeyedSingleton<IQueueNamingConvention, TNamingConvention>(builder.BusName);
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds a queue naming convention using a factory method.
+    /// </summary>
+    /// <param name="builder">The <see cref="WhisprBuilder"/>.</param>
+    /// <param name="factory">A factory function that creates the naming convention instance. The function receives the service provider and bus name.</param>
+    /// <typeparam name="TNamingConvention">The type of the queue naming convention.</typeparam>
+    /// <returns>The <see cref="WhisprBuilder"/>.</returns>
+    public static WhisprBuilder AddQueueNamingConvention<TNamingConvention>(
+        this WhisprBuilder builder,
+        Func<IServiceProvider, string, TNamingConvention> factory)
+        where TNamingConvention : class, IQueueNamingConvention
+    {
+        builder.Services.AddKeyedSingleton<IQueueNamingConvention>(
+            builder.BusName,
+            (sp, key) => factory(sp, (string)key!));
         return builder;
     }
 

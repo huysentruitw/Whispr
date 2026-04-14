@@ -76,4 +76,22 @@ public static class WhisprBuilderExtensions
         builder.Services.TryAddKeyedSingleton<ISubscriptionNamingConvention, T>(builder.BusName);
         return builder;
     }
+
+    /// <summary>
+    /// Adds a subscription naming convention using a factory method.
+    /// </summary>
+    /// <param name="builder">The <see cref="WhisprBuilder"/>.</param>
+    /// <param name="factory">A factory function that creates the naming convention instance. The function receives the service provider and bus name.</param>
+    /// <typeparam name="T">The type of the subscription naming convention.</typeparam>
+    /// <returns>The <see cref="WhisprBuilder"/>.</returns>
+    public static WhisprBuilder AddSubscriptionNamingConvention<T>(
+        this WhisprBuilder builder,
+        Func<IServiceProvider, string, T> factory)
+        where T : class, ISubscriptionNamingConvention
+    {
+        builder.Services.TryAddKeyedSingleton<ISubscriptionNamingConvention>(
+            builder.BusName,
+            (sp, key) => factory(sp, (string)key!));
+        return builder;
+    }
 }
