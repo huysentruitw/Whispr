@@ -20,7 +20,7 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<IWhisprInitializer, WhisprInitializer>();
         services.TryAddSingleton<IDiagnosticEventListener, ActivityDiagnosticEventListener>();
 
-        services.TryAddSingleton<IMessageBusInitializer>(serviceProvider => new MessageBusInitializer(
+        services.AddSingleton<IMessageBusInitializer>(serviceProvider => new MessageBusInitializer(
             busName,
             serviceProvider.GetRequiredKeyedService<IEnumerable<MessageHandlerDescriptor>>(busName),
             serviceProvider.GetRequiredKeyedService<IQueueNamingConvention>(busName),
@@ -30,7 +30,7 @@ public static class ServiceCollectionExtensions
             serviceProvider.GetRequiredService<IDiagnosticEventListener>(),
             serviceProvider.GetRequiredService<ILogger<MessageBusInitializer>>()));
 
-        services.TryAddKeyedSingleton<IMessageSender>(
+        services.AddKeyedSingleton<IMessageSender>(
             busName,
             (serviceProvider, key) => new MessageSender(
                 busName,
@@ -38,7 +38,7 @@ public static class ServiceCollectionExtensions
                 serviceProvider.GetRequiredKeyedService<ITransport>(key),
                 serviceProvider.GetRequiredService<IDiagnosticEventListener>()));
         
-        services.TryAddKeyedScoped<IMessagePublisher>(
+        services.AddKeyedScoped<IMessagePublisher>(
             busName,
             (serviceProvider, key) => new MessagePublisher(
                 busName,
@@ -51,8 +51,8 @@ public static class ServiceCollectionExtensions
         // Configure publisher for default bus
         if (busName == WhisprDefaults.DefaultBusName)
         {
-            services.TryAddScoped<IMessagePublisher>(serviceProvider
-                => serviceProvider.GetRequiredKeyedService<IMessagePublisher>(busName));
+            services.AddScoped<IMessagePublisher>(serviceProvider
+                => serviceProvider.GetRequiredKeyedService<IMessagePublisher>(WhisprDefaults.DefaultBusName));
         }
         
         return new WhisprBuilder(services, busName);

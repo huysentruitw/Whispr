@@ -28,7 +28,7 @@ public static class WhisprBuilderExtensions
                 .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IMessageHandler<>))
                 .ToArray();
 
-            builder.Services.TryAddKeyedScoped(handlerType, builder.BusName);
+            builder.Services.AddKeyedScoped(handlerType, builder.BusName);
 
             builder.MessageHandlerDescriptors.Add(new MessageHandlerDescriptor
             {
@@ -57,7 +57,7 @@ public static class WhisprBuilderExtensions
     public static WhisprBuilder AddTopicNamingConvention<TNamingConvention>(this WhisprBuilder builder)
         where TNamingConvention : class, ITopicNamingConvention
     {
-        builder.Services.TryAddKeyedSingleton<ITopicNamingConvention, TNamingConvention>(builder.BusName);
+        builder.Services.AddKeyedSingleton<ITopicNamingConvention, TNamingConvention>(builder.BusName);
         return builder;
     }
 
@@ -78,7 +78,7 @@ public static class WhisprBuilderExtensions
     public static WhisprBuilder AddQueueNamingConvention<TNamingConvention>(this WhisprBuilder builder)
         where TNamingConvention : class, IQueueNamingConvention
     {
-        builder.Services.TryAddKeyedSingleton<IQueueNamingConvention, TNamingConvention>(builder.BusName);
+        builder.Services.AddKeyedSingleton<IQueueNamingConvention, TNamingConvention>(builder.BusName);
         return builder;
     }
 
