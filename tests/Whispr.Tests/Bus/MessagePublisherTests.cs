@@ -103,6 +103,7 @@ public sealed class MessagePublisherTests
             var topicNamingConvention = CreateTopicNamingConvention();
 
             var publisher = new MessagePublisher(
+                "BusName",
                 filters,
                 topicNamingConvention,
                 messageSenderMock.Object,
@@ -118,6 +119,7 @@ public sealed class MessagePublisherTests
             var topicNamingConvention = CreateTopicNamingConvention();
 
             var publisher = new MessagePublisher(
+                "BusName",
                 [],
                 topicNamingConvention,
                 messageSenderMock.Object,

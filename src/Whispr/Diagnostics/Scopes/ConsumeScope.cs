@@ -8,6 +8,12 @@ internal sealed class ConsumeScope(Activity activity) : IDisposable
 
     public const string ActivityName = "Whispr.Consume";
 
+    public ConsumeScope WithBusName(string busName)
+    {
+        activity.SetTag(TagNames.BusName, busName);
+        return this;
+    }
+    
     public ConsumeScope WithHandlerName(string handlerName)
     {
         activity.DisplayName = handlerName;

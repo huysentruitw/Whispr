@@ -50,7 +50,7 @@ public sealed class HostFixture : IAsyncLifetime, IServiceProvider
 
         await RecreateDatabase(_host.Services);
 
-        await _host.Services.GetRequiredService<IMessageBusInitializer>().Start();
+        await _host.Services.GetRequiredService<IWhisprInitializer>().Start();
         await _host.StartAsync();
     }
 

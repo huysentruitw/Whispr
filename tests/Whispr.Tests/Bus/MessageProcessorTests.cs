@@ -102,7 +102,7 @@ public sealed class MessageProcessorTests
         public static TestHarness<THandler, TMessage> Create(IEnumerable<IConsumeFilter> filters)
         {
             var handler = new THandler();
-            var processor = new MessageProcessor<THandler, TMessage>(filters, handler, new NoOpDiagnosticsEventListener());
+            var processor = new MessageProcessor<THandler, TMessage>("BusName", filters, handler, new NoOpDiagnosticsEventListener());
 
             return new TestHarness<THandler, TMessage>
             {

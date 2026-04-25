@@ -6,6 +6,7 @@ on:
       - '*.*.*'
     branches:
       - develop
+      - release/*
       - main
   pull_request:
     branches:
@@ -17,15 +18,31 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: Fetch all history for all tags and branches
-      run: git fetch --prune --unshallow
-    - name: Install GitVersion
-      uses: gittools/actions/gitversion/setup@v1.1.1
       with:
-          versionSpec: '5.x'
+        fetch-depth: 0
+    - name: Install GitVersion
+      uses: gittools/actions/gitversion/setup@v4
+      with:
+        versionSpec: '6.7.x'
     - name: Use GitVersion
-      id: gitversion # step id used as reference for output values
-      uses: gittools/actions/gitversion/execute@v1.1.1
+      uses: gittools/actions/gitversion/execute@v4
+      with:
+        disableCache: true
+        configFilePath: 'GitVersion.yml'
+    - name: Compute NuGet version
+      shell: pwsh
+      run: |
+        $base = "${{ env.GitVersion_MajorMinorPatch }}"
+        $label = "${{ env.GitVersion_PreReleaseLabel }}"
+        if ($label) {
+          $number = [int]"${{ env.GitVersion_CommitsSinceVersionSource }}"
+          $padded = $number.ToString("D4")
+          $version = "$base-$label$padded"
+        } else {
+          $version = $base
+        }
+        "NUGET_VERSION=$version" >> $env:GITHUB_ENV
+        Write-Host "NuGet version: $version"
     - name: Setup .NET 8
       uses: actions/setup-dotnet@v1
       with:
@@ -37,14 +54,14 @@ jobs:
     - name: Install dependencies
       run: dotnet restore
     - name: Build
-      run: dotnet build --configuration Release --no-restore /p:Version=${{ steps.gitversion.outputs.nuGetVersionV2 }}
+      run: dotnet build --configuration Release --no-restore /p:Version=${{ env.NUGET_VERSION }}
     - name: Test
       env:
         AzureServiceBus__ConnectionString: ${{ secrets.AZURESERVICEBUS__CONNECTIONSTRING }}
         CI: true
       run: dotnet test --configuration Release --no-restore --no-build --verbosity normal
     - name: Publish
-      if: startsWith(github.ref, 'refs/tags/') && github.repository_owner == 'huysentruitw'
+      if: (startsWith(github.ref, 'refs/tags/') || startsWith(github.ref, 'refs/heads/release/')) && github.repository_owner == 'huysentruitw'
       shell: pwsh
       run: |
         Get-ChildItem ".\src" -Filter "*.nupkg" -R | ForEach-Object {

@@ -1,16 +1,17 @@
 ﻿namespace Whispr.Bus;
 
 internal sealed class MessageSender(
-    IServiceProvider serviceProvider,
+    string busName,
+    IServiceScopeFactory serviceScopeFactory,
     ITransport transport,
     IDiagnosticEventListener diagnosticEventListener) : IMessageSender
 {
     public ValueTask Send(string topicName, SerializedEnvelope envelope, CancellationToken cancellationToken)
     {
-        using var _ = diagnosticEventListener.Send(topicName, envelope);
+        using var _ = diagnosticEventListener.Send(busName, topicName, envelope);
 
-        using var scope = serviceProvider.CreateScope();
-        var sendFilters = scope.ServiceProvider.GetServices<ISendFilter>().ToArray();
+        using var scope = serviceScopeFactory.CreateScope();
+        var sendFilters = scope.ServiceProvider.GetKeyedServices<ISendFilter>(busName).ToArray();
 
         // Build the sending pipeline
         Func<string, SerializedEnvelope, CancellationToken, ValueTask> pipeline = transport.Send;

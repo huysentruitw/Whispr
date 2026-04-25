@@ -16,6 +16,11 @@ public static class TagNames
     public const string MessageType = "message.type";
 
     /// <summary>
+    /// The name of the bus.
+    /// </summary>
+    public const string BusName = "bus.name";
+    
+    /// <summary>
     /// The name of the topic.
     /// </summary>
     public const string TopicName = "topic.name";

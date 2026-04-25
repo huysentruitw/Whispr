@@ -27,6 +27,39 @@ services
         .AddMessageHandlersFromAssembly(Assembly.GetExecutingAssembly());
 ```
 
+### Initialize Whispr
+
+```csharp
+var serviceHost = builder.Build();
+
+await serviceHost.Services.GetRequiredService<IWhisprInitializer>().Start();
+await serviceHost.RunAsync();
+```
+
+Calling the `Start` method of the `IWhisprInitializer` is required to ensure that all topics, queues and subscriptions
+are created and the listeners are configured before the application starts processing messages.
+
+### Publishing a message
+
+```csharp
+public sealed class MyService(IMessagePublisher publisher)
+{
+    public async Task DoSomethingAsync(CancellationToken cancellationToken)
+    {
+        var message = new SomethingHappened
+        {
+            Id = Guid.NewGuid(),
+            Timestamp = DateTime.UtcNow
+        };
+
+        await publisher.Publish(message, cancellationToken: cancellationToken);
+        
+        // When using the transactional outbox, save changes to the DbContext to ensure the message is added to the outbox
+        // await dbContext.SaveChangesAsync(cancellationToken);
+    }
+}
+```
+
 ## 🏷️ Naming conventions
 
 This library auto-generates topics and queues by using the given naming conventions. The default naming conventions are:
@@ -122,7 +155,7 @@ Two types of filters can be applied to the messaging pipeline:
 - `ISendFilter`: Filters that are applied before a message is sent to the transport.
 - `IConsumeFilter`: Filters that are applied before the message is handled by the message handler.
 
-### Dependecy injection
+### Dependency injection
 
 Publish filters are executed from the same scope as from where the message is published.
 
@@ -186,3 +219,48 @@ flowchart LR
     
     G[Transport] --> H[Consume Filters] --> I[Message Handler]
 ```
+
+## Multi-bus support
+
+It is possible to configure multiple named buses in the same application.
+
+Configuration example:
+
+```csharp
+services
+    .AddWhispr("ModuleA")
+    ...
+
+services
+    .AddWhispr("ModuleB")
+    ...
+```
+
+Start buses in one go:
+
+```csharp
+await serviceHost.Services.GetRequiredService<IWhisprInitializer>().Start();
+```
+
+Publish a message to a specific bus:
+
+```csharp
+public sealed class MyService([FromKeyedServices("ModuleA")] IMessagePublisher publisher)
+{
+    public async Task DoSomethingAsync(CancellationToken cancellationToken)
+    {
+        var message = new SomethingHappened
+        {
+            Id = Guid.NewGuid(),
+            Timestamp = DateTime.UtcNow
+        };
+
+        await publisher.Publish(message, cancellationToken: cancellationToken);
+        
+        // When using the transactional outbox, save changes to the DbContext to ensure the message is added to the outbox
+        // await dbContext.SaveChangesAsync(cancellationToken);
+    }
+}
+```
+
+> ☝️️ To avoid having to type `[FromKeyedServices("...")]` everywhere, create a wrapper publisher for each bus.

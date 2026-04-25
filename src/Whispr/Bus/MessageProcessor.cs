@@ -1,6 +1,7 @@
 ﻿namespace Whispr.Bus;
 
 internal sealed class MessageProcessor<TMessageHandler, TMessage>(
+    string busName,
     IEnumerable<IConsumeFilter> consumeFilters,
     TMessageHandler handler,
     IDiagnosticEventListener diagnosticEventListener) : IMessageProcessor
@@ -10,6 +11,7 @@ internal sealed class MessageProcessor<TMessageHandler, TMessage>(
     public ValueTask Process(string queueName, SerializedEnvelope serializedEnvelope, CancellationToken cancellationToken = default)
     {
         using var _ = diagnosticEventListener.Consume(
+            busName: busName,
             consumerName: typeof(TMessageHandler).Name,
             queueName: queueName,
             envelope: serializedEnvelope);

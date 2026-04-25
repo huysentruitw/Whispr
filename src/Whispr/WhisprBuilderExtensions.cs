@@ -28,7 +28,7 @@ public static class WhisprBuilderExtensions
                 .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IMessageHandler<>))
                 .ToArray();
 
-            builder.Services.AddScoped(handlerType);
+            builder.Services.AddKeyedScoped(handlerType, builder.BusName);
 
             builder.MessageHandlerDescriptors.Add(new MessageHandlerDescriptor
             {
@@ -57,7 +57,25 @@ public static class WhisprBuilderExtensions
     public static WhisprBuilder AddTopicNamingConvention<TNamingConvention>(this WhisprBuilder builder)
         where TNamingConvention : class, ITopicNamingConvention
     {
-        builder.Services.TryAddSingleton<ITopicNamingConvention, TNamingConvention>();
+        builder.Services.AddKeyedSingleton<ITopicNamingConvention, TNamingConvention>(builder.BusName);
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds a topic naming convention using a factory method.
+    /// </summary>
+    /// <param name="builder">The <see cref="WhisprBuilder"/>.</param>
+    /// <param name="factory">A factory function that creates the naming convention instance. The function receives the service provider and bus name.</param>
+    /// <typeparam name="TNamingConvention">The type of the topic naming convention.</typeparam>
+    /// <returns>The <see cref="WhisprBuilder"/>.</returns>
+    public static WhisprBuilder AddTopicNamingConvention<TNamingConvention>(
+        this WhisprBuilder builder,
+        Func<IServiceProvider, string, TNamingConvention> factory)
+        where TNamingConvention : class, ITopicNamingConvention
+    {
+        builder.Services.AddKeyedSingleton<ITopicNamingConvention>(
+            builder.BusName,
+            (sp, key) => factory(sp, (string)key!));
         return builder;
     }
 
@@ -78,7 +96,25 @@ public static class WhisprBuilderExtensions
     public static WhisprBuilder AddQueueNamingConvention<TNamingConvention>(this WhisprBuilder builder)
         where TNamingConvention : class, IQueueNamingConvention
     {
-        builder.Services.TryAddSingleton<IQueueNamingConvention, TNamingConvention>();
+        builder.Services.AddKeyedSingleton<IQueueNamingConvention, TNamingConvention>(builder.BusName);
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds a queue naming convention using a factory method.
+    /// </summary>
+    /// <param name="builder">The <see cref="WhisprBuilder"/>.</param>
+    /// <param name="factory">A factory function that creates the naming convention instance. The function receives the service provider and bus name.</param>
+    /// <typeparam name="TNamingConvention">The type of the queue naming convention.</typeparam>
+    /// <returns>The <see cref="WhisprBuilder"/>.</returns>
+    public static WhisprBuilder AddQueueNamingConvention<TNamingConvention>(
+        this WhisprBuilder builder,
+        Func<IServiceProvider, string, TNamingConvention> factory)
+        where TNamingConvention : class, IQueueNamingConvention
+    {
+        builder.Services.AddKeyedSingleton<IQueueNamingConvention>(
+            builder.BusName,
+            (sp, key) => factory(sp, (string)key!));
         return builder;
     }
 
@@ -103,7 +139,25 @@ public static class WhisprBuilderExtensions
     public static WhisprBuilder AddPublishFilter<TFilter>(this WhisprBuilder builder)
         where TFilter : class, IPublishFilter
     {
-        builder.Services.AddScoped<IPublishFilter, TFilter>();
+        builder.Services.AddKeyedScoped<IPublishFilter, TFilter>(builder.BusName);
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds a publish filter using a factory method.
+    /// </summary>
+    /// <param name="builder">The <see cref="WhisprBuilder"/>.</param>
+    /// <param name="factory">A factory function that creates the filter instance. The function receives the service provider and bus name.</param>
+    /// <typeparam name="TFilter">The type of the publish filter.</typeparam>
+    /// <returns>The <see cref="WhisprBuilder"/>.</returns>
+    public static WhisprBuilder AddPublishFilter<TFilter>(
+        this WhisprBuilder builder,
+        Func<IServiceProvider, string, TFilter> factory)
+        where TFilter : class, IPublishFilter
+    {
+        builder.Services.AddKeyedScoped<IPublishFilter>(
+            builder.BusName,
+            (sp, key) => factory(sp, (string)key!));
         return builder;
     }
 
@@ -116,7 +170,25 @@ public static class WhisprBuilderExtensions
     public static WhisprBuilder AddSendFilter<TFilter>(this WhisprBuilder builder)
         where TFilter : class, ISendFilter
     {
-        builder.Services.AddScoped<ISendFilter, TFilter>();
+        builder.Services.AddKeyedScoped<ISendFilter, TFilter>(builder.BusName);
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds a send filter using a factory method.
+    /// </summary>
+    /// <param name="builder">The <see cref="WhisprBuilder"/>.</param>
+    /// <param name="factory">A factory function that creates the filter instance. The function receives the service provider and bus name.</param>
+    /// <typeparam name="TFilter">The type of the send filter.</typeparam>
+    /// <returns>The <see cref="WhisprBuilder"/>.</returns>
+    public static WhisprBuilder AddSendFilter<TFilter>(
+        this WhisprBuilder builder,
+        Func<IServiceProvider, string, TFilter> factory)
+        where TFilter : class, ISendFilter
+    {
+        builder.Services.AddKeyedScoped<ISendFilter>(
+            builder.BusName,
+            (sp, key) => factory(sp, (string)key!));
         return builder;
     }
 
@@ -129,7 +201,25 @@ public static class WhisprBuilderExtensions
     public static WhisprBuilder AddConsumeFilter<TFilter>(this WhisprBuilder builder)
         where TFilter : class, IConsumeFilter
     {
-        builder.Services.AddScoped<IConsumeFilter, TFilter>();
+        builder.Services.AddKeyedScoped<IConsumeFilter, TFilter>(builder.BusName);
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds a consume filter using a factory method.
+    /// </summary>
+    /// <param name="builder">The <see cref="WhisprBuilder"/>.</param>
+    /// <param name="factory">A factory function that creates the filter instance. The function receives the service provider and bus name.</param>
+    /// <typeparam name="TFilter">The type of the consume filter.</typeparam>
+    /// <returns>The <see cref="WhisprBuilder"/>.</returns>
+    public static WhisprBuilder AddConsumeFilter<TFilter>(
+        this WhisprBuilder builder,
+        Func<IServiceProvider, string, TFilter> factory)
+        where TFilter : class, IConsumeFilter
+    {
+        builder.Services.AddKeyedScoped<IConsumeFilter>(
+            builder.BusName,
+            (sp, key) => factory(sp, (string)key!));
         return builder;
     }
 
@@ -144,7 +234,7 @@ public static class WhisprBuilderExtensions
     /// <returns>The <see cref="WhisprBuilder"/>.</returns>
     public static WhisprBuilder AddInMemoryTransport(this WhisprBuilder builder)
     {
-        builder.Services.AddSingleton<ITransport, InMemoryTransport>();
+        builder.Services.AddKeyedSingleton<ITransport, InMemoryTransport>(builder.BusName);
         return builder;
     }
 

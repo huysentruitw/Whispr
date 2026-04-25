@@ -2,6 +2,7 @@
 
 /// <inheritdoc />
 internal sealed class MessagePublisher(
+    string busName,
     IEnumerable<IPublishFilter> publishFilters,
     ITopicNamingConvention topicNamingConvention,
     IMessageSender sender,
@@ -29,7 +30,7 @@ internal sealed class MessagePublisher(
             DeferredUntil = options.DeferredUntil,
         };
 
-        using var publishScope = diagnosticEventListener.Publish(envelope);
+        using var publishScope = diagnosticEventListener.Publish(busName, envelope);
 
         // Build the publishing pipeline
         Func<Envelope<TMessage>, CancellationToken, ValueTask> pipeline = Publish;

@@ -1,19 +1,20 @@
 ﻿namespace Whispr.EntityFrameworkCore.Processing;
 
 internal sealed class OutboxProcessor<TDbContext>(
+    string busName,
     OutboxProcessorTrigger<TDbContext> trigger,
     IMessageSender messageSender,
-    IOptions<OutboxOptions> options,
-    IServiceProvider serviceProvider,
+    IServiceScopeFactory serviceScopeFactory,
+    OutboxOptions options,
     IDiagnosticEventListener diagnosticEventListener,
     ILogger<OutboxProcessor<TDbContext>> logger) : BackgroundService
     where TDbContext : DbContext
 {
-    private readonly TimeSpan _queryDelay = options.Value.QueryDelay;
-    private readonly TimeSpan _idleQueryDelay = options.Value.IdleQueryDelay;
-    private readonly int _maxMessageBatchSize = options.Value.MaxMessageBatchSize;
-    private readonly bool _messageRetentionEnabled = options.Value.EnableMessageRetention;
-    private string? _sqlStatement = null;
+    private readonly TimeSpan _queryDelay = options.QueryDelay;
+    private readonly TimeSpan _idleQueryDelay = options.IdleQueryDelay;
+    private readonly int _maxMessageBatchSize = options.MaxMessageBatchSize;
+    private readonly bool _messageRetentionEnabled = options.EnableMessageRetention;
+    private string? _sqlStatement;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -39,7 +40,7 @@ internal sealed class OutboxProcessor<TDbContext>(
 
     private async ValueTask<int> SendOutboxMessages(CancellationToken cancellationToken)
     {
-        await using var scope = serviceProvider.CreateAsyncScope();
+        await using var scope = serviceScopeFactory.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<TDbContext>();
 
         _sqlStatement ??= GetOutboxSqlStatement<OutboxMessage>(dbContext, maxMessageBatchSize: _maxMessageBatchSize);
@@ -87,7 +88,7 @@ internal sealed class OutboxProcessor<TDbContext>(
     {
         try
         {
-            using var _ = diagnosticEventListener.ProcessOutboxMessage(outboxMessage);
+            using var _ = diagnosticEventListener.ProcessOutboxMessage(busName, outboxMessage);
             var envelope = CreateSerializedEnvelope(outboxMessage);
             await messageSender.Send(outboxMessage.DestinationTopicName, envelope, CancellationToken.None);
             return outboxMessage.Id;

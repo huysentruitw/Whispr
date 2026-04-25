@@ -1,15 +1,15 @@
 ﻿namespace Whispr.EntityFrameworkCore.Cleaning;
 
 internal sealed class OutboxCleanupService<TDbContext>(
-    IOptions<OutboxOptions> options,
-    ILogger<OutboxCleanupService<TDbContext>> logger,
-    IServiceProvider serviceProvider) : BackgroundService
+    IServiceScopeFactory serviceScopeFactory,
+    OutboxOptions options,
+    ILogger<OutboxCleanupService<TDbContext>> logger) : BackgroundService
     where TDbContext : DbContext
 {
-    private readonly bool _messageRetentionEnabled = options.Value.EnableMessageRetention;
-    private readonly TimeSpan _cleanupDelay = options.Value.ProcessedMessageCleanupDelay;
-    private readonly TimeSpan _retentionPeriod = options.Value.ProcessedMessageRetentionPeriod;
-    private readonly int _batchSize = options.Value.ProcessedMessageCleanupBatchSize;
+    private readonly bool _messageRetentionEnabled = options.EnableMessageRetention;
+    private readonly TimeSpan _cleanupDelay = options.ProcessedMessageCleanupDelay;
+    private readonly TimeSpan _retentionPeriod = options.ProcessedMessageRetentionPeriod;
+    private readonly int _batchSize = options.ProcessedMessageCleanupBatchSize;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -42,7 +42,7 @@ internal sealed class OutboxCleanupService<TDbContext>(
 
     private async ValueTask CleanupOutboxMessages(CancellationToken cancellationToken)
     {
-        await using var scope = serviceProvider.CreateAsyncScope();
+        await using var scope = serviceScopeFactory.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<TDbContext>();
 
         while (!cancellationToken.IsCancellationRequested)

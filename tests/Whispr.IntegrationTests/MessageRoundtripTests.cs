@@ -1,6 +1,6 @@
 using Whispr.IntegrationTests.TestInfrastructure;
 
-namespace Whispr.IntegrationTests.Tests;
+namespace Whispr.IntegrationTests;
 
 public sealed class MessageRoundtripTests(HostFixture hostFixture)
 {

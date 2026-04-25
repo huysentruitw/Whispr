@@ -20,7 +20,7 @@ internal sealed partial class ServiceBusTransport
             await entityManager.CreateSubscriptionIfNotExists(subscriptionName, topicName, queueName, cancellationToken);
         }
 
-        var processor = processorFactory.GetOrCreateProcessor(queueName, options.Value.QueueConcurrencyLimit);
+        var processor = processorFactory.GetOrCreateProcessor(queueName, options.QueueConcurrencyLimit);
 
         processor.ProcessMessageAsync += args => ProcessMessage(args, messageCallback, cancellationToken);
         processor.ProcessErrorAsync += args => ProcessError(args, cancellationToken);
