@@ -74,7 +74,7 @@ public static class WhisprBuilderExtensions
                     senderFactory: serviceProvider.GetRequiredKeyedService<SenderFactory>(key),
                     processorFactory: serviceProvider.GetRequiredKeyedService<ProcessorFactory>(key),
                     entityManager: serviceProvider.GetRequiredKeyedService<EntityManager>(key),
-                    serviceProvider.GetRequiredKeyedService<ISubscriptionNamingConvention>(builder.BusName),
+                    serviceProvider.GetRequiredKeyedService<ISubscriptionNamingConvention>(key),
                     options,
                     serviceProvider.GetRequiredService<ILogger<ServiceBusTransport>>());
             });
