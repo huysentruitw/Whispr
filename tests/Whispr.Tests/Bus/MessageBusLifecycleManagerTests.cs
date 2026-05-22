@@ -8,16 +8,16 @@ using Whispr.Transport;
 
 namespace Whispr.Tests.Bus;
 
-public sealed class MessageBusInitializerTests
+public sealed class MessageBusLifecycleManagerTests
 {
     [Fact]
-    public async Task Given_NoHandlerDescriptors_When_StartInitializer_Then_DoesntStartListener()
+    public async Task Given_NoHandlerDescriptors_When_Start_Then_DoesntStartListener()
     {
         // Arrange
         var testHarness = TestHarness.Create([]);
 
         // Act
-        await testHarness.Initializer.Start(TestContext.Current.CancellationToken);
+        await testHarness.LifecycleManager.StartAsync(TestContext.Current.CancellationToken);
 
         // Assert
         testHarness.Transport.Verify(
@@ -26,7 +26,7 @@ public sealed class MessageBusInitializerTests
     }
 
     [Fact]
-    public async Task Given_HandlerDescriptors_When_StartInitializer_Then_StartsListeners()
+    public async Task Given_HandlerDescriptors_When_Start_Then_StartsListeners()
     {
         // Arrange
         var descriptors = new[]
@@ -37,7 +37,7 @@ public sealed class MessageBusInitializerTests
         var testHarness = TestHarness.Create(descriptors);
 
         // Act
-        await testHarness.Initializer.Start(TestContext.Current.CancellationToken);
+        await testHarness.LifecycleManager.StartAsync(TestContext.Current.CancellationToken);
 
         // Assert
         testHarness.Transport.Verify(
@@ -49,6 +49,21 @@ public sealed class MessageBusInitializerTests
             Times.Once);
     }
 
+    [Fact]
+    public async Task When_Stop_Then_StopsListeners()
+    {
+        // Arrange
+        var testHarness = TestHarness.Create([]);
+
+        // Act
+        await testHarness.LifecycleManager.StopAsync(TestContext.Current.CancellationToken);
+
+        // Assert
+        testHarness.Transport.Verify(
+            x => x.StopListeners(It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
     private sealed class TestHarness
     {
         public static TestHarness Create(IEnumerable<MessageHandlerDescriptor> descriptors)
@@ -57,7 +72,7 @@ public sealed class MessageBusInitializerTests
             var serviceProvider = new ServiceCollection()
                 .BuildServiceProvider();
 
-            var initializer = new MessageBusInitializer(
+            var lifecycleManager = new MessageBusLifecycleManager(
                 "BusName",
                 descriptors,
                 CreateQueueNamingConvention(),
@@ -65,12 +80,12 @@ public sealed class MessageBusInitializerTests
                 transportMock.Object,
                 serviceProvider.GetRequiredService<IServiceScopeFactory>(),
                 new NoOpDiagnosticsEventListener(),
-                Mock.Of<ILogger<MessageBusInitializer>>());
+                Mock.Of<ILogger<MessageBusLifecycleManager>>());
 
-            return new TestHarness { Initializer = initializer, Transport = transportMock };
+            return new TestHarness { LifecycleManager = lifecycleManager, Transport = transportMock };
         }
 
-        public required MessageBusInitializer Initializer { get; internal init; }
+        public required MessageBusLifecycleManager LifecycleManager { get; internal init; }
 
         public required Mock<ITransport> Transport { get; internal init; }
 

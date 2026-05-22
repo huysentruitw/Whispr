@@ -21,9 +21,15 @@ internal sealed class ProcessorFactory(ServiceBusClient client) : IAsyncDisposab
         };
     }
 
+    public async ValueTask StopAllProcessors(CancellationToken cancellationToken = default)
+    {
+        foreach (var processor in _processors.Values)
+            await processor.StopProcessingAsync(cancellationToken);
+    }
+
     public async ValueTask DisposeAsync()
     {
-        foreach (var sender in _processors.Values)
-            await sender.DisposeAsync();
+        foreach (var processor in _processors.Values)
+            await processor.DisposeAsync();
     }
 }
