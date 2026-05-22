@@ -28,4 +28,10 @@ public interface ITransport
         string[] topicNames,
         Func<SerializedEnvelope, CancellationToken, ValueTask> messageCallback,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Stops all listeners for this transport.
+    /// </summary>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    ValueTask StopListeners(CancellationToken cancellationToken = default);
 }

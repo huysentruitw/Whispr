@@ -16,11 +16,10 @@ public static class ServiceCollectionExtensions
     public static WhisprBuilder AddWhispr(this IServiceCollection services, string? busName = null)
     {
         busName ??= WhisprDefaults.DefaultBusName;
-
-        services.TryAddSingleton<IWhisprInitializer, WhisprInitializer>();
+        
         services.TryAddSingleton<IDiagnosticEventListener, ActivityDiagnosticEventListener>();
 
-        services.AddSingleton<IMessageBusInitializer>(serviceProvider => new MessageBusInitializer(
+        services.AddSingleton<IHostedService>(serviceProvider => new MessageBusLifecycleManager(
             busName,
             serviceProvider.GetRequiredKeyedService<IEnumerable<MessageHandlerDescriptor>>(busName),
             serviceProvider.GetRequiredKeyedService<IQueueNamingConvention>(busName),
@@ -28,7 +27,7 @@ public static class ServiceCollectionExtensions
             serviceProvider.GetRequiredKeyedService<ITransport>(busName),
             serviceProvider.GetRequiredService<IServiceScopeFactory>(),
             serviceProvider.GetRequiredService<IDiagnosticEventListener>(),
-            serviceProvider.GetRequiredService<ILogger<MessageBusInitializer>>()));
+            serviceProvider.GetRequiredService<ILogger<MessageBusLifecycleManager>>()));
 
         services.AddKeyedSingleton<IMessageSender>(
             busName,

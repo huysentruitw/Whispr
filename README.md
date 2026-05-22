@@ -27,17 +27,7 @@ services
         .AddMessageHandlersFromAssembly(Assembly.GetExecutingAssembly());
 ```
 
-### Initialize Whispr
-
-```csharp
-var serviceHost = builder.Build();
-
-await serviceHost.Services.GetRequiredService<IWhisprInitializer>().Start();
-await serviceHost.RunAsync();
-```
-
-Calling the `Start` method of the `IWhisprInitializer` is required to ensure that all topics, queues and subscriptions
-are created and the listeners are configured before the application starts processing messages.
+Whispr automatically starts listening for messages when the host starts, and gracefully stops during shutdown - no manual initialization required.
 
 ### Publishing a message
 
@@ -236,11 +226,7 @@ services
     ...
 ```
 
-Start buses in one go:
-
-```csharp
-await serviceHost.Services.GetRequiredService<IWhisprInitializer>().Start();
-```
+Each bus runs as its own hosted service and starts/stops automatically with the host.
 
 Publish a message to a specific bus:
 

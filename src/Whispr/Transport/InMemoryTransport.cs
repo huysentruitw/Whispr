@@ -52,4 +52,10 @@ internal sealed class InMemoryTransport(ILogger<InMemoryTransport> logger) : ITr
 
         return ValueTask.CompletedTask;
     }
+
+    public ValueTask StopListeners(CancellationToken cancellationToken = default)
+    {
+        _listeners.Clear();
+        return ValueTask.CompletedTask;
+    }
 }

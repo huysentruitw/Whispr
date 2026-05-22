@@ -111,4 +111,7 @@ internal sealed partial class ServiceBusTransport
 
         return Task.CompletedTask;
     }
+
+    public ValueTask StopListeners(CancellationToken cancellationToken = default)
+        => processorFactory.StopAllProcessors(cancellationToken);
 }

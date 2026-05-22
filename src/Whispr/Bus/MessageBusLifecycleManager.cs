@@ -3,8 +3,7 @@ using System.Reflection;
 
 namespace Whispr.Bus;
 
-/// <inheritdoc />
-internal sealed class MessageBusInitializer(
+internal sealed class MessageBusLifecycleManager(
     string busName,
     IEnumerable<MessageHandlerDescriptor> messageHandlerDescriptors,
     IQueueNamingConvention queueNamingConvention,
@@ -12,11 +11,11 @@ internal sealed class MessageBusInitializer(
     ITransport transport,
     IServiceScopeFactory serviceScopeFactory,
     IDiagnosticEventListener diagnosticEventListener,
-    ILogger<MessageBusInitializer> logger) : IMessageBusInitializer
+    ILogger<MessageBusLifecycleManager> logger) : IHostedService
 {
     private static readonly ConcurrentDictionary<(Type HandlerType, Type MessageType), MethodInfo?> MessageProcessorFactoryCache = new();
     
-    public async ValueTask Start(CancellationToken cancellationToken = default)
+    public async Task StartAsync(CancellationToken cancellationToken)
     {
         using var _ = diagnosticEventListener.Start(busName);
 
@@ -25,6 +24,15 @@ internal sealed class MessageBusInitializer(
         await StartListeners(cancellationToken);
 
         logger.LogInformation("Message bus '{BusName}' started!", busName);
+    }
+
+    public async Task StopAsync(CancellationToken cancellationToken)
+    {
+        logger.LogInformation("Stopping message bus '{BusName}'...", busName);
+
+        await transport.StopListeners(cancellationToken);
+
+        logger.LogInformation("Message bus '{BusName}' stopped!", busName);
     }
 
     private async ValueTask StartListeners(CancellationToken cancellationToken = default)
@@ -61,7 +69,7 @@ internal sealed class MessageBusInitializer(
         // Construct a type-safe factory method for creating message processors, and cache it for future use.
         var factory = MessageProcessorFactoryCache.GetOrAdd(
             (handlerType, messageType),
-            static key => typeof(MessageBusInitializer)
+            static key => typeof(MessageBusLifecycleManager)
                 .GetMethod(nameof(CreateMessageProcessor), BindingFlags.NonPublic | BindingFlags.Static)
                 ?.MakeGenericMethod(key.HandlerType, key.MessageType));
         
