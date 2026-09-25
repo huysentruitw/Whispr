@@ -44,8 +44,21 @@ internal sealed class OutboxProcessor<TDbContext>(
         var dbContext = scope.ServiceProvider.GetRequiredService<TDbContext>();
 
         _sqlStatement ??= GetOutboxSqlStatement<OutboxMessage>(dbContext, maxMessageBatchSize: _maxMessageBatchSize);
+
+        // The execution strategy is required when the user configured retry on failure on the DbContext,
+        // as user-initiated transactions are not allowed otherwise.
+        var executionStrategy = dbContext.Database.CreateExecutionStrategy();
+        return await executionStrategy.ExecuteAsync(
+            ct => SendOutboxMessages(dbContext, _sqlStatement, ct).AsTask(),
+            cancellationToken);
+    }
+
+    private async ValueTask<int> SendOutboxMessages(TDbContext dbContext, string sqlStatement, CancellationToken cancellationToken)
+    {
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+
         var outboxMessages = await dbContext.Set<OutboxMessage>()
-            .FromSqlRaw(_sqlStatement)
+            .FromSqlRaw(sqlStatement)
             .AsNoTracking()
             .ToArrayAsync(cancellationToken);
 
@@ -81,6 +94,8 @@ internal sealed class OutboxProcessor<TDbContext>(
                 .ExecuteDeleteAsync(CancellationToken.None);
         }
 
+        await transaction.CommitAsync(CancellationToken.None);
+
         return processedMessageIds.Count;
     }
 
@@ -103,7 +118,7 @@ internal sealed class OutboxProcessor<TDbContext>(
     private static string GetOutboxSqlStatement<TEntity>(DbContext context, int maxMessageBatchSize)
     {
         var tableName = GetTableName<TEntity>(context);
-        return $"SELECT TOP {maxMessageBatchSize} * FROM {tableName} WITH (UPDLOCK, READPAST) WHERE [ProcessedAtUtc] IS NULL ORDER BY [CreatedAtUtc]";
+        return $"SELECT TOP {maxMessageBatchSize} * FROM {tableName} WITH (UPDLOCK, ROWLOCK, READPAST) WHERE [ProcessedAtUtc] IS NULL ORDER BY [CreatedAtUtc]";
     }
 
     private static string GetTableName<TEntity>(DbContext context)
