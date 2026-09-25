@@ -110,7 +110,7 @@ internal sealed partial class ServiceBusTransport
         logger.LogError(
             args.Exception,
             "Error processing message from queue {QueueName}: {ErrorMessage}",
-            args.FullyQualifiedNamespace,
+            args.EntityPath,
             args.Exception.Message);
 
         return Task.CompletedTask;
