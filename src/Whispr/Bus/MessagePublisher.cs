@@ -9,7 +9,7 @@ internal sealed class MessagePublisher(
     IDiagnosticEventListener diagnosticEventListener,
     IOutbox? outbox = null) : IMessagePublisher
 {
-    public ValueTask Publish<TMessage>(TMessage message, Action<PublishOptions>? configure, CancellationToken cancellationToken)
+    public async ValueTask Publish<TMessage>(TMessage message, Action<PublishOptions>? configure, CancellationToken cancellationToken)
         where TMessage : class
     {
         var messageType = message.GetType().FullName
@@ -41,7 +41,7 @@ internal sealed class MessagePublisher(
         }
 
         // Execute the publishing pipeline
-        return pipeline(envelope, cancellationToken);
+        await pipeline(envelope, cancellationToken);
     }
 
     private ValueTask Publish<TMessage>(Envelope<TMessage> envelope, CancellationToken cancellationToken)

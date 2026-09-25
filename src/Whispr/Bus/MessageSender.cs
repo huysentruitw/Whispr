@@ -6,11 +6,11 @@ internal sealed class MessageSender(
     ITransport transport,
     IDiagnosticEventListener diagnosticEventListener) : IMessageSender
 {
-    public ValueTask Send(string topicName, SerializedEnvelope envelope, CancellationToken cancellationToken)
+    public async ValueTask Send(string topicName, SerializedEnvelope envelope, CancellationToken cancellationToken)
     {
         using var _ = diagnosticEventListener.Send(busName, topicName, envelope);
 
-        using var scope = serviceScopeFactory.CreateScope();
+        await using var scope = serviceScopeFactory.CreateAsyncScope();
         var sendFilters = scope.ServiceProvider.GetKeyedServices<ISendFilter>(busName).ToArray();
 
         // Build the sending pipeline
@@ -22,6 +22,6 @@ internal sealed class MessageSender(
         }
 
         // Execute the sending pipeline
-        return pipeline(topicName, envelope, cancellationToken);
+        await pipeline(topicName, envelope, cancellationToken);
     }
 }

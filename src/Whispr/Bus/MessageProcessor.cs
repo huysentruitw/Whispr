@@ -8,7 +8,7 @@ internal sealed class MessageProcessor<TMessageHandler, TMessage>(
     where TMessageHandler : IMessageHandler<TMessage>
     where TMessage : class
 {
-    public ValueTask Process(string queueName, SerializedEnvelope serializedEnvelope, CancellationToken cancellationToken = default)
+    public async ValueTask Process(string queueName, SerializedEnvelope serializedEnvelope, CancellationToken cancellationToken = default)
     {
         using var _ = diagnosticEventListener.Consume(
             busName: busName,
@@ -28,7 +28,7 @@ internal sealed class MessageProcessor<TMessageHandler, TMessage>(
         }
 
         // Execute the consuming pipeline
-        return pipeline(envelope, cancellationToken);
+        await pipeline(envelope, cancellationToken);
     }
 }
 

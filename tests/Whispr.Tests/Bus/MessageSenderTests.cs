@@ -47,6 +47,24 @@ public sealed class MessageSenderTests
         Assert.Equal(["Filter1", "Filter2", "Transport"], callOrder);
     }
 
+    [Fact]
+    public async Task Given_AsyncSendFilter_When_Send_Then_FilterIsNotDisposedBeforeItCompletes()
+    {
+        // Arrange
+        var topicName = "t/test";
+        var serializedEnvelope = SerializedEnvelopeFactory.Create(new TestMessage("Test content"));
+
+        var filter = new DisposableAsyncSendFilter();
+        var testHarness = TestHarness.Create([filter]);
+
+        // Act
+        await testHarness.Sender.Send(topicName, serializedEnvelope, CancellationToken.None);
+
+        // Assert
+        Assert.False(filter.WasDisposedWhileSending);
+        Assert.True(filter.IsDisposed);
+    }
+
     private sealed class TestHarness
     {
         public static TestHarness Create(IEnumerable<ISendFilter> filters)
@@ -87,6 +105,27 @@ public sealed class MessageSenderTests
             sendAction(topicName, envelope);
             await next(topicName, envelope, cancellationToken);
         }
+    }
+
+    private sealed class DisposableAsyncSendFilter : ISendFilter, IDisposable
+    {
+        public bool IsDisposed { get; private set; }
+
+        public bool WasDisposedWhileSending { get; private set; }
+
+        public async ValueTask Send(
+            string topicName,
+            SerializedEnvelope envelope,
+            Func<string, SerializedEnvelope, CancellationToken, ValueTask> next,
+            CancellationToken cancellationToken)
+        {
+            // Force an asynchronous continuation, so the sender returns to its caller before this filter completes
+            await Task.Delay(10, cancellationToken);
+            WasDisposedWhileSending = IsDisposed;
+            await next(topicName, envelope, cancellationToken);
+        }
+
+        public void Dispose() => IsDisposed = true;
     }
 
     private sealed record TestMessage(string Content);
