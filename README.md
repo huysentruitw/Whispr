@@ -23,9 +23,11 @@ services
         })
         .AddTopicNamingConvention<DefaultTopicNamingConvention>()
         .AddQueueNamingConvention<DefaultQueueNamingConvention>()
-        .AddSubscriptionNamingConvention<SubscriptionNamingConvention>()
+        .AddSubscriptionNamingConvention<MySubscriptionNamingConvention>()
         .AddMessageHandlersFromAssembly(Assembly.GetExecutingAssembly());
 ```
+
+☝️ There is no default subscription naming convention, see [Azure Service Bus](#azure-service-bus) for an example implementation.
 
 Whispr automatically starts listening for messages when the host starts, and gracefully stops during shutdown - no manual initialization required.
 
@@ -49,6 +51,8 @@ public sealed class MyService(IMessagePublisher publisher)
     }
 }
 ```
+
+☝️ Messages are routed and serialized by their runtime type, so a message published through a base type or interface (e.g. `Publish<IDomainEvent>(domainEvent)`) is delivered to the topic and handlers of its concrete type.
 
 ## 🏷️ Naming conventions
 
@@ -100,7 +104,7 @@ services
 
 ### Azure Service Bus
 
-The Azure Service Bus transport is implemented using the `Microsoft.Azure.ServiceBus` package. The transport can be configured using the `AddAzureServiceBusTransport` method:
+The Azure Service Bus transport is implemented using the `Azure.Messaging.ServiceBus` package. The transport can be configured using the `AddAzureServiceBusTransport` method:
 
 ```csharp
 services
@@ -116,7 +120,7 @@ Since this transport also creates subscriptions to forward messages from topics 
 ```csharp
 public sealed class MySubscriptionNamingConvention : ISubscriptionNamingConvention
 {
-    public string Format(Type handlerType) => $"subscription-{handlerType.Name}";
+    public string Format(string queueName) => $"subscription-{queueName}";
 }
 ```
 
@@ -127,6 +131,8 @@ services
     .AddWhispr()
         .AddSubscriptionNamingConvention<MySubscriptionNamingConvention>();
 ```
+
+☝️ A message with a type that isn't handled by the receiving handler is dead-lettered immediately with reason `Unsupported message type`. This typically happens when a handler no longer handles a message type, while its subscription on that topic still exists. Delete the stale subscription to stop these messages from arriving.
 
 ## 🪄 Filters
 
@@ -139,7 +145,7 @@ flowchart LR
     E[Transport] --> F[Consume Filters] --> G[Message Handler]
 ```
 
-Two types of filters can be applied to the messaging pipeline:
+Three types of filters can be applied to the messaging pipeline:
 
 - `IPublishFilter`: Filters that are applied when a message is published.
 - `ISendFilter`: Filters that are applied before a message is sent to the transport.
@@ -163,7 +169,7 @@ The transactional outbox pattern is implemented using EF Core and consists of:
 
 There is also a trigger mechanism that forces the outbox to be processed as soon as possible. This is useful when you want to ensure that messages are sent immediately after the transaction is committed.
 
-> ⚠️ The query used by the outbox background service is currently implemented for MSSQL Server only. If you are using a different database, you will need to implement your own query.
+> ⚠️ The query used by the outbox background service is currently implemented for MSSQL Server only, other databases are not supported.
 
 Enabling the outbox is a two step process:
 
@@ -172,9 +178,9 @@ Enabling the outbox is a two step process:
 ```csharp
 services
     .AddWhispr()
-        .AddOutbox(options =>
+        .AddOutbox<MyDbContext>(options =>
         {
-            options.QueryDelay = TimeSpan.FromSeconds(10);
+            options.IdleQueryDelay = TimeSpan.FromSeconds(10);
             options.MaxMessageBatchSize = 100;
             options.EnableMessageRetention = true;
             options.ProcessedMessageRetentionPeriod = TimeSpan.FromDays(1);
