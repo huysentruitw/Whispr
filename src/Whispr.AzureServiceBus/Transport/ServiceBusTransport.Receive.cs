@@ -63,6 +63,24 @@ internal sealed partial class ServiceBusTransport
             // The args cancellation token is signaled when the processor is stopping
             await messageCallback(serializedEnvelope, args.CancellationToken);
         }
+        catch (UnsupportedMessageTypeException ex)
+        {
+            logger.LogWarning(
+                ex,
+                "Dead-lettering message with ID {MessageId} from queue {QueueName}: unsupported message type {MessageType}",
+                args.Message.MessageId,
+                args.EntityPath,
+                messageType);
+
+            // Retrying won't help, so dead-letter immediately instead of exhausting the max delivery count.
+            await args.DeadLetterMessageAsync(
+                args.Message,
+                deadLetterReason: "Unsupported message type",
+                deadLetterErrorDescription: ex.Message,
+                cancellationToken: CancellationToken.None);
+
+            return;
+        }
         catch (Exception ex)
         {
             logger.LogError(

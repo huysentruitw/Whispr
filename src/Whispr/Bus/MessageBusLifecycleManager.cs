@@ -57,7 +57,7 @@ internal sealed class MessageBusLifecycleManager(
     {
         // Create a scoped message processor and forward the envelope
         var messageType = descriptor.MessageTypes.SingleOrDefault(type => type.FullName == serializedEnvelope.MessageType)
-            ?? throw new InvalidOperationException($"Handler: {descriptor.HandlerType} doesn't support message type: {serializedEnvelope.MessageType}");
+            ?? throw new UnsupportedMessageTypeException(descriptor.HandlerType, serializedEnvelope.MessageType);
         
         await using var scope = serviceScopeFactory.CreateAsyncScope();
         var processor = CreateMessageProcessor(descriptor.HandlerType, messageType, scope.ServiceProvider);

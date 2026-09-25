@@ -50,6 +50,35 @@ public sealed class MessageBusLifecycleManagerTests
     }
 
     [Fact]
+    public async Task Given_UnsupportedMessageType_When_MessageReceived_Then_ThrowsUnsupportedMessageTypeException()
+    {
+        // Arrange
+        var descriptors = new[]
+        {
+            new MessageHandlerDescriptor { HandlerType = typeof(HandlerOne), MessageTypes = [ typeof(MessageOne) ] },
+        };
+        var testHarness = TestHarness.Create(descriptors);
+
+        Func<SerializedEnvelope, CancellationToken, ValueTask>? messageCallback = null;
+        testHarness.Transport
+            .Setup(x => x.StartListener(It.IsAny<string>(), It.IsAny<string[]>(), It.IsAny<Func<SerializedEnvelope, CancellationToken, ValueTask>>(), It.IsAny<CancellationToken>()))
+            .Callback<string, string[], Func<SerializedEnvelope, CancellationToken, ValueTask>, CancellationToken>((_, _, callback, _) => messageCallback = callback)
+            .Returns(ValueTask.CompletedTask);
+
+        await testHarness.LifecycleManager.StartAsync(TestContext.Current.CancellationToken);
+        Assert.NotNull(messageCallback);
+
+        var serializedEnvelope = SerializedEnvelopeFactory.Create(new MessageTwo("Test content"));
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<UnsupportedMessageTypeException>(
+            async () => await messageCallback(serializedEnvelope, TestContext.Current.CancellationToken));
+
+        Assert.Equal(typeof(HandlerOne), exception.HandlerType);
+        Assert.Equal(typeof(MessageTwo).FullName, exception.MessageType);
+    }
+
+    [Fact]
     public async Task When_Stop_Then_StopsListeners()
     {
         // Arrange
