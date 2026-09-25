@@ -4,7 +4,8 @@ namespace Whispr.Transport;
 
 internal sealed class InMemoryTransport(ILogger<InMemoryTransport> logger) : ITransport
 {
-    private readonly ConcurrentDictionary<string, List<Func<SerializedEnvelope, CancellationToken, ValueTask>>> _listeners = new();
+    // Callback arrays are never mutated, but replaced, so Send can safely iterate a snapshot
+    private readonly ConcurrentDictionary<string, Func<SerializedEnvelope, CancellationToken, ValueTask>[]> _listeners = new();
 
     public ValueTask StartListener(string queueName, string[] topicNames, Func<SerializedEnvelope, CancellationToken, ValueTask> messageCallback, CancellationToken cancellationToken = default)
     {
@@ -13,11 +14,7 @@ internal sealed class InMemoryTransport(ILogger<InMemoryTransport> logger) : ITr
             _listeners.AddOrUpdate(
                 topicName,
                 _ => [messageCallback],
-                (_, existingCallbacks) =>
-                {
-                    existingCallbacks.Add(messageCallback);
-                    return existingCallbacks;
-                });
+                (_, existingCallbacks) => [..existingCallbacks, messageCallback]);
         }
 
         return ValueTask.CompletedTask;
