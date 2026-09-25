@@ -81,28 +81,6 @@ public static class WhisprBuilderExtensions
         
         return builder;
     }
-    
-    private static ServiceBusClient CreateServiceBusClient(AzureServiceBusOptions options)
-    {
-        if (!string.IsNullOrEmpty(options.HostName))
-            return new ServiceBusClient(options.HostName, options.TokenCredential ?? new DefaultAzureCredential());
-
-        if (!string.IsNullOrEmpty(options.ConnectionString))
-            return new ServiceBusClient(options.ConnectionString);
-
-        throw new InvalidOperationException("Either HostName or ConnectionString must be provided.");
-    }
-    
-    private static ServiceBusAdministrationClient CreateServiceBusAdministrationClient(AzureServiceBusOptions options)
-    {
-        if (!string.IsNullOrEmpty(options.HostName))
-            return new ServiceBusAdministrationClient(options.HostName, options.TokenCredential ?? new DefaultAzureCredential());
-
-        if (!string.IsNullOrEmpty(options.ConnectionString))
-            return new ServiceBusAdministrationClient(options.ConnectionString);
-
-        throw new InvalidOperationException("Either HostName or ConnectionString must be provided.");
-    }
 
     /// <summary>
     /// Adds a subscription naming convention to Whispr.
