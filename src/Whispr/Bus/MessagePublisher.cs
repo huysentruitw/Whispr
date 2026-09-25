@@ -12,7 +12,10 @@ internal sealed class MessagePublisher(
     public async ValueTask Publish<TMessage>(TMessage message, Action<PublishOptions>? configure, CancellationToken cancellationToken)
         where TMessage : class
     {
-        var messageType = message.GetType().FullName
+        // Use the runtime type, so a message published through a base type or interface
+        // is routed, typed and serialized as the concrete message type.
+        var runtimeType = message.GetType();
+        var messageType = runtimeType.FullName
             ?? throw new InvalidOperationException("Message type must have a full name");
 
         var options = new PublishOptions();
@@ -25,7 +28,7 @@ internal sealed class MessagePublisher(
             MessageType = messageType,
             PublishedAtUtc = DateTime.UtcNow,
             Headers = options.Headers,
-            DestinationTopicName = topicNamingConvention.Format(typeof(TMessage)),
+            DestinationTopicName = topicNamingConvention.Format(runtimeType),
             CorrelationId = options.CorrelationId,
             DeferredUntil = options.DeferredUntil,
         };
@@ -49,7 +52,7 @@ internal sealed class MessagePublisher(
     {
         var serializedEnvelope = new SerializedEnvelope
         {
-            Body = JsonSerializer.Serialize(envelope),
+            Body = Serialize(envelope),
             MessageType = envelope.MessageType,
             MessageId = envelope.MessageId,
             CorrelationId = envelope.CorrelationId,
@@ -59,5 +62,18 @@ internal sealed class MessagePublisher(
         // When an outbox is available, we add the message to the outbox instead of sending it directly.
         return outbox?.Add(envelope.DestinationTopicName, serializedEnvelope, cancellationToken)
             ?? sender.Send(envelope.DestinationTopicName, serializedEnvelope, cancellationToken);
+    }
+
+    private static string Serialize<TMessage>(Envelope<TMessage> envelope)
+        where TMessage : class
+    {
+        var runtimeType = envelope.Message.GetType();
+        if (runtimeType == typeof(TMessage))
+            return JsonSerializer.Serialize(envelope);
+
+        // System.Text.Json serializes by declared type, which would drop the properties of the concrete message
+        var node = JsonSerializer.SerializeToNode(envelope)!;
+        node[nameof(Envelope<TMessage>.Message)] = JsonSerializer.SerializeToNode(envelope.Message, runtimeType);
+        return node.ToJsonString();
     }
 }

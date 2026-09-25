@@ -1,4 +1,5 @@
-﻿using Whispr.Bus;
+﻿using System.Text.Json;
+using Whispr.Bus;
 using Whispr.Conventions;
 using Whispr.Filtering;
 using Whispr.Outbox;
@@ -95,6 +96,35 @@ public sealed class MessagePublisherTests
             Times.Once);
     }
 
+    [Fact]
+    public async Task Given_MessagePublishedAsBaseType_When_Publish_Then_UsesRuntimeType()
+    {
+        // Arrange
+        var testHarness = TestHarness.Create([]);
+        BaseTestMessage message = new DerivedTestMessage("Base content", "Derived content");
+        SerializedEnvelope? sentEnvelope = null;
+        testHarness.MessageSender
+            .Setup(x => x.Send(It.IsAny<string>(), It.IsAny<SerializedEnvelope>(), It.IsAny<CancellationToken>()))
+            .Callback<string, SerializedEnvelope, CancellationToken>((_, envelope, _) => sentEnvelope = envelope);
+
+        // Act
+        await testHarness.Publisher.Publish(message, null, CancellationToken.None);
+
+        // Assert
+        testHarness.MessageSender.Verify(
+            x => x.Send(
+                It.Is<string>(topic => topic == "topic-DerivedTestMessage"),
+                It.Is<SerializedEnvelope>(env => env.MessageType == typeof(DerivedTestMessage).FullName),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        Assert.NotNull(sentEnvelope);
+        var envelope = JsonSerializer.Deserialize<Envelope<DerivedTestMessage>>(sentEnvelope.Body);
+        Assert.NotNull(envelope);
+        Assert.Equal("Base content", envelope.Message.Text);
+        Assert.Equal("Derived content", envelope.Message.Extra);
+    }
+
     private sealed class TestHarness
     {
         public static TestHarness Create(IEnumerable<IPublishFilter> filters)
@@ -169,4 +199,8 @@ public sealed class MessagePublisherTests
     }
 
     private sealed record TestMessage(string Text);
+
+    private record BaseTestMessage(string Text);
+
+    private sealed record DerivedTestMessage(string Text, string Extra) : BaseTestMessage(Text);
 }
