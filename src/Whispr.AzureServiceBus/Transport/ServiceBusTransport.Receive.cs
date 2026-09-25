@@ -22,25 +22,27 @@ internal sealed partial class ServiceBusTransport
 
         var processor = processorFactory.GetOrCreateProcessor(queueName, options.QueueConcurrencyLimit);
 
-        processor.ProcessMessageAsync += args => ProcessMessage(args, messageCallback, cancellationToken);
-        processor.ProcessErrorAsync += args => ProcessError(args, cancellationToken);
+        processor.ProcessMessageAsync += args => ProcessMessage(args, messageCallback);
+        processor.ProcessErrorAsync += ProcessError;
 
         await processor.StartProcessingAsync(cancellationToken);
     }
 
     private async Task ProcessMessage(
         ProcessMessageEventArgs args,
-        Func<SerializedEnvelope, CancellationToken, ValueTask> messageCallback,
-        CancellationToken cancellationToken)
+        Func<SerializedEnvelope, CancellationToken, ValueTask> messageCallback)
     {
-        var messageType = args.Message.ApplicationProperties[MessageTypePropertyName]?.ToString();
+        var messageType = args.Message.ApplicationProperties.TryGetValue(MessageTypePropertyName, out var messageTypeProperty)
+            ? messageTypeProperty?.ToString()
+            : null;
+
         if (messageType is null)
         {
             await args.DeadLetterMessageAsync(
                 args.Message,
                 deadLetterReason: "Missing message type",
                 deadLetterErrorDescription: "The message type is missing from the application properties.",
-                cancellationToken: cancellationToken);
+                cancellationToken: CancellationToken.None);
 
             return;
         }
@@ -58,7 +60,8 @@ internal sealed partial class ServiceBusTransport
 
         try
         {
-            await messageCallback(serializedEnvelope, cancellationToken);
+            // The args cancellation token is signaled when the processor is stopping
+            await messageCallback(serializedEnvelope, args.CancellationToken);
         }
         catch (Exception ex)
         {
@@ -70,12 +73,13 @@ internal sealed partial class ServiceBusTransport
 
             // If the message is abandoned, it will be made available for reprocessing immediately.
             var exceptionDetails = GetExceptionDetails(ex);
-            await args.AbandonMessageAsync(args.Message, exceptionDetails, cancellationToken);
+            await args.AbandonMessageAsync(args.Message, exceptionDetails, CancellationToken.None);
 
             return;
         }
 
-        await args.CompleteMessageAsync(args.Message, cancellationToken);
+        // Settle without cancellation, so a successfully handled message isn't reprocessed when the processor is stopping
+        await args.CompleteMessageAsync(args.Message, CancellationToken.None);
     }
 
     private static IDictionary<string, object> GetExceptionDetails(Exception exception)
@@ -101,7 +105,7 @@ internal sealed partial class ServiceBusTransport
         }
     }
 
-    private Task ProcessError(ProcessErrorEventArgs args, CancellationToken cancellationToken)
+    private Task ProcessError(ProcessErrorEventArgs args)
     {
         logger.LogError(
             args.Exception,
