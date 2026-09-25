@@ -19,6 +19,8 @@ public static class WhisprBuilderExtensions
     public static WhisprBuilder AddOutbox<TDbContext>(this WhisprBuilder builder, Action<OutboxOptions>? configureOptions = null)
         where TDbContext : DbContext
     {
+        EnsureDbContextNotUsedByOtherBus<TDbContext>(builder);
+
         var optionsName = $"Outbox_{builder.BusName}";
         builder.Services.Configure(optionsName, configureOptions ?? (_ => { }));
 
@@ -58,4 +60,29 @@ public static class WhisprBuilderExtensions
 
         return builder;
     }
+
+    private static void EnsureDbContextNotUsedByOtherBus<TDbContext>(WhisprBuilder builder)
+        where TDbContext : DbContext
+    {
+        // The outbox table has no bus discriminator, so sharing a DbContext between buses
+        // would make the outbox processors pick up (and send) each other's messages.
+        var otherBusName = builder.Services
+            .Where(descriptor => !descriptor.IsKeyedService && descriptor.ServiceType == typeof(OutboxRegistration<TDbContext>))
+            .Select(descriptor => descriptor.ImplementationInstance)
+            .OfType<OutboxRegistration<TDbContext>>()
+            .Select(registration => registration.BusName)
+            .FirstOrDefault(busName => busName != builder.BusName);
+
+        if (otherBusName is not null)
+        {
+            throw new InvalidOperationException(
+                $"DbContext '{typeof(TDbContext).Name}' is already used by the outbox of bus '{otherBusName}'. " +
+                $"Each bus requires its own DbContext for the outbox (bus '{builder.BusName}').");
+        }
+
+        builder.Services.AddSingleton(new OutboxRegistration<TDbContext>(builder.BusName));
+    }
+
+    private sealed record OutboxRegistration<TDbContext>(string BusName)
+        where TDbContext : DbContext;
 }

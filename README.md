@@ -228,6 +228,8 @@ services
 
 Each bus runs as its own hosted service and starts/stops automatically with the host.
 
+> ⚠️ When using the transactional outbox, each bus requires its own `DbContext`. Registering the outbox with the same `DbContext` on multiple buses throws an `InvalidOperationException`.
+
 Publish a message to a specific bus:
 
 ```csharp
