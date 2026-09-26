@@ -14,6 +14,9 @@ internal sealed class OutboxProcessor<TDbContext>(
     private readonly TimeSpan _idleQueryDelay = options.IdleQueryDelay;
     private readonly int _maxMessageBatchSize = options.MaxMessageBatchSize;
     private readonly bool _messageRetentionEnabled = options.EnableMessageRetention;
+    private readonly int? _maxSendAttempts = options.MaxSendAttempts;
+    private readonly TimeSpan _retryBackoffBase = options.RetryBackoffBase;
+    private readonly TimeSpan _retryBackoffMax = options.RetryBackoffMax;
     private string? _sqlStatement;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -58,28 +61,35 @@ internal sealed class OutboxProcessor<TDbContext>(
         await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
 
         var outboxMessages = await dbContext.Set<OutboxMessage>()
-            .FromSqlRaw(sqlStatement)
+            .FromSqlRaw(sqlStatement, DateTimeOffset.UtcNow)
             .AsNoTracking()
             .ToArrayAsync(cancellationToken);
 
         if (outboxMessages.Length == 0)
             return 0;
 
-        var processedMessageIds = new List<long>();
+        var results = outboxMessages.Length == 1
+            ? [await TrySendMessage(outboxMessages[0])]
+            : await Task.WhenAll(outboxMessages.Select(TrySendMessage));
 
-        if (outboxMessages.Length == 1)
-        {
-            var messageId = await TrySendMessage(outboxMessages[0]);
-            if (messageId is not null)
-                processedMessageIds.Add(messageId.Value);
-        }
-        else
-        {
-            var sendTasks = outboxMessages.Select(TrySendMessage).ToArray();
-            var results = await Task.WhenAll(sendTasks);
-            processedMessageIds.AddRange(results.Where(x => x.HasValue).Select(x => x!.Value));
-        }
+        var processedMessageIds = results
+            .Where(x => x.Error is null)
+            .Select(x => x.Message.Id)
+            .ToArray();
 
+        foreach (var failedResult in results.Where(x => x.Error is not null))
+            await RegisterFailedAttempt(dbContext, failedResult.Message, failedResult.Error!);
+
+        if (processedMessageIds.Length > 0)
+            await MarkAsProcessed(dbContext, processedMessageIds);
+
+        await transaction.CommitAsync(CancellationToken.None);
+
+        return processedMessageIds.Length;
+    }
+
+    private async ValueTask MarkAsProcessed(TDbContext dbContext, long[] processedMessageIds)
+    {
         if (_messageRetentionEnabled)
         {
             var processedAtUtc = DateTimeOffset.UtcNow;
@@ -93,32 +103,73 @@ internal sealed class OutboxProcessor<TDbContext>(
                 .Where(x => processedMessageIds.Contains(x.Id))
                 .ExecuteDeleteAsync(CancellationToken.None);
         }
-
-        await transaction.CommitAsync(CancellationToken.None);
-
-        return processedMessageIds.Count;
     }
 
-    private async Task<long?> TrySendMessage(OutboxMessage outboxMessage)
+    private async Task<SendResult> TrySendMessage(OutboxMessage outboxMessage)
     {
         try
         {
             using var _ = diagnosticEventListener.ProcessOutboxMessage(busName, outboxMessage);
             var envelope = CreateSerializedEnvelope(outboxMessage);
             await messageSender.Send(outboxMessage.DestinationTopicName, envelope, CancellationToken.None);
-            return outboxMessage.Id;
+            return new SendResult(outboxMessage, Error: null);
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to send message with ID {MessageId} (Outbox ID {Id})", outboxMessage.MessageId, outboxMessage.Id);
-            return null;
+            return new SendResult(outboxMessage, Error: ex);
         }
     }
+
+    private async ValueTask RegisterFailedAttempt(TDbContext dbContext, OutboxMessage outboxMessage, Exception error)
+    {
+        var attemptCount = outboxMessage.AttemptCount + 1;
+        var nowUtc = DateTimeOffset.UtcNow;
+        var nextAttemptAtUtc = nowUtc + GetRetryBackoff(attemptCount);
+        var parkedAtUtc = attemptCount >= _maxSendAttempts ? nowUtc : (DateTimeOffset?)null;
+        var lastError = Truncate($"{error.GetType().FullName}: {error.Message}", OutboxMessage.LastErrorMaxLength);
+
+        await dbContext.Set<OutboxMessage>()
+            .Where(x => x.Id == outboxMessage.Id)
+            .ExecuteUpdateAsync(
+                x => x
+                    .SetProperty(m => m.AttemptCount, attemptCount)
+                    .SetProperty(m => m.NextAttemptAtUtc, nextAttemptAtUtc)
+                    .SetProperty(m => m.ParkedAtUtc, parkedAtUtc)
+                    .SetProperty(m => m.LastError, lastError),
+                CancellationToken.None);
+
+        if (parkedAtUtc is not null)
+        {
+            logger.LogError(
+                "Parked message with ID {MessageId} (Outbox ID {Id}) after {AttemptCount} failed send attempts",
+                outboxMessage.MessageId,
+                outboxMessage.Id,
+                attemptCount);
+        }
+    }
+
+    private TimeSpan GetRetryBackoff(int attemptCount)
+    {
+        // Cap the exponent to prevent overflow, the result is capped by the max backoff anyway
+        var exponent = Math.Min(attemptCount - 1, 30);
+        var backoffTicks = _retryBackoffBase.Ticks * Math.Pow(2, exponent);
+        return backoffTicks >= _retryBackoffMax.Ticks ? _retryBackoffMax : TimeSpan.FromTicks((long)backoffTicks);
+    }
+
+    private static string Truncate(string value, int maxLength)
+        => value.Length > maxLength ? value[..maxLength] : value;
 
     private static string GetOutboxSqlStatement<TEntity>(DbContext context, int maxMessageBatchSize)
     {
         var tableName = GetTableName<TEntity>(context);
-        return $"SELECT TOP {maxMessageBatchSize} * FROM {tableName} WITH (UPDLOCK, ROWLOCK, READPAST) WHERE [ProcessedAtUtc] IS NULL ORDER BY [CreatedAtUtc]";
+
+        // {0} is the current UTC time, passed as parameter so the application clock is used for both scheduling and querying
+        return $$"""
+            SELECT TOP {{maxMessageBatchSize}} * FROM {{tableName}} WITH (UPDLOCK, ROWLOCK, READPAST)
+            WHERE [ProcessedAtUtc] IS NULL AND [ParkedAtUtc] IS NULL AND ([NextAttemptAtUtc] IS NULL OR [NextAttemptAtUtc] <= {0})
+            ORDER BY [CreatedAtUtc]
+            """;
     }
 
     private static string GetTableName<TEntity>(DbContext context)
@@ -146,4 +197,6 @@ internal sealed class OutboxProcessor<TDbContext>(
             DeferredUntil = outboxMessage.DeferredUntil,
         };
     }
+
+    private sealed record SendResult(OutboxMessage Message, Exception? Error);
 }

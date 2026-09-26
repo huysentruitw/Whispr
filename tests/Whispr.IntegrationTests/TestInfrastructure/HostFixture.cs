@@ -44,7 +44,14 @@ public sealed class HostFixture : IAsyncLifetime, IServiceProvider
                         .AddMessageHandlersFromAssembly(typeof(AssemblyMarker).Assembly)
                         .AddPublishFilter<FirstPublishFilter>()
                         .AddPublishFilter<SecondPublishFilter>()
-                        .AddOutbox<DataContext>();
+                        .AddSendFilter<FailingSendFilter>()
+                        .AddOutbox<DataContext>(
+                            options =>
+                            {
+                                options.MaxSendAttempts = 3;
+                                options.RetryBackoffBase = TimeSpan.FromMilliseconds(100);
+                                options.RetryBackoffMax = TimeSpan.FromMilliseconds(500);
+                            });
                 })
             .Build();
 

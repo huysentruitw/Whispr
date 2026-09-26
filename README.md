@@ -186,6 +186,9 @@ services
             options.ProcessedMessageRetentionPeriod = TimeSpan.FromDays(1);
             options.ProcessedMessageCleanupDelay = TimeSpan.FromHours(1);
             options.ProcessedMessageCleanupBatchSize = 100;
+            options.MaxSendAttempts = null; // Never park messages
+            options.RetryBackoffBase = TimeSpan.FromSeconds(1);
+            options.RetryBackoffMax = TimeSpan.FromMinutes(5);
         });
 ```
 
@@ -203,6 +206,26 @@ public class MyDbContext : DbContext
         modelBuilder.AddOutboxMessageEntity(schemaName: "Application");
     }
 }
+```
+
+3. Add an EF Core migration to create the outbox table.
+
+### Retries and parked messages
+
+When a send attempt fails, the message is retried with exponential backoff, starting at `RetryBackoffBase` and capped at `RetryBackoffMax`. Other messages are sent in the meantime, so a message that keeps failing never blocks the outbox. The number of failed send attempts and the last error are stored in the `AttemptCount` and `LastError` columns.
+
+By default, a message is retried until it's sent. When `MaxSendAttempts` is set, a message is parked after that many failed send attempts, by setting `ParkedAtUtc`. Parked messages are no longer retried and are not removed by the cleanup service.
+
+> ⚠️ A transport outage causes all send attempts to fail, so a low `MaxSendAttempts` can park a lot of messages.
+
+To find parked messages and retry them:
+
+```sql
+SELECT * FROM [Application].[OutboxMessage] WHERE [ParkedAtUtc] IS NOT NULL;
+
+UPDATE [Application].[OutboxMessage]
+SET [ParkedAtUtc] = NULL, [AttemptCount] = 0, [NextAttemptAtUtc] = NULL
+WHERE [ParkedAtUtc] IS NOT NULL;
 ```
 
 ### Pipeline with outbox
