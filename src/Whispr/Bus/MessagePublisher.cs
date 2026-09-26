@@ -71,12 +71,14 @@ internal sealed class MessagePublisher(
         var runtimeType = envelope.Message.GetType();
         if (runtimeType == typeof(TMessage))
             return JsonSerializer.Serialize(envelope, jsonSerializerOptions);
-
+        
         // System.Text.Json serializes by declared type, which would drop the properties of the concrete message
-        const string messagePropertyName = nameof(Envelope<TMessage>.Message);
+        var messagePropertyName = GetPropertyName(nameof(Envelope<>.Message));
         var node = JsonSerializer.SerializeToNode(envelope, jsonSerializerOptions)!;
-        node[jsonSerializerOptions.PropertyNamingPolicy?.ConvertName(messagePropertyName) ?? messagePropertyName] =
-            JsonSerializer.SerializeToNode(envelope.Message, runtimeType, jsonSerializerOptions);
+        node[messagePropertyName] = JsonSerializer.SerializeToNode(envelope.Message, runtimeType, jsonSerializerOptions);
         return node.ToJsonString(jsonSerializerOptions);
     }
+
+    private string GetPropertyName(string name)
+        => jsonSerializerOptions.PropertyNamingPolicy?.ConvertName(name) ?? name;
 }
