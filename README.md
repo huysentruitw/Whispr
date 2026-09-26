@@ -148,6 +148,20 @@ services
         });
 ```
 
+When a message handler throws, the message is abandoned and redelivered immediately, until `QueueCreation.MaxDeliveryCount` is reached and the message is dead-lettered. To prevent a short outage of an external dependency from dead-lettering messages right away, enable an exponential back-off by setting `RetryBackoffBase`. The delay then doubles with each delivery, capped at `RetryBackoffMax` (30 seconds by default).
+
+```csharp
+services
+    .AddWhispr()
+        .AddAzureServiceBusTransport(options =>
+        {
+            options.RetryBackoffBase = TimeSpan.FromSeconds(1);
+            options.RetryBackoffMax = TimeSpan.FromSeconds(30);
+        });
+```
+
+> ⚠️ While waiting, the message stays locked and occupies a `QueueConcurrencyLimit` slot of its queue.
+
 ☝️ A message with a type that isn't handled by the receiving handler is dead-lettered immediately with reason `Unsupported message type`. This typically happens when a handler no longer handles a message type, while its subscription on that topic still exists. Delete the stale subscription to stop these messages from arriving.
 
 ## 🪄 Filters

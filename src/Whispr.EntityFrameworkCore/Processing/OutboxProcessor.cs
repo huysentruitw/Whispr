@@ -152,9 +152,9 @@ internal sealed class OutboxProcessor<TDbContext>(
     private TimeSpan GetRetryBackoff(int attemptCount)
     {
         // Cap the exponent to prevent overflow, the result is capped by the max backoff anyway
-        var exponent = Math.Min(attemptCount - 1, 30);
-        var backoffTicks = _retryBackoffBase.Ticks * Math.Pow(2, exponent);
-        return backoffTicks >= _retryBackoffMax.Ticks ? _retryBackoffMax : TimeSpan.FromTicks((long)backoffTicks);
+        var exponent = Math.Clamp(attemptCount - 1, 0, 16);
+        var backoffTicks = _retryBackoffBase.Ticks << exponent;
+        return backoffTicks >= _retryBackoffMax.Ticks ? _retryBackoffMax : TimeSpan.FromTicks(backoffTicks);
     }
 
     private static string Truncate(string value, int maxLength)

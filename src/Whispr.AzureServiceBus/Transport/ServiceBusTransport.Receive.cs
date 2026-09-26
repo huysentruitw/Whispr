@@ -83,13 +83,20 @@ internal sealed partial class ServiceBusTransport
         }
         catch (Exception ex)
         {
+            var retryDelay = GetRetryDelay(args.Message.DeliveryCount, options.RetryBackoffBase, options.RetryBackoffMax);
+
             logger.LogError(
                 ex,
-                "Failed to process message with ID {MessageId} and correlation ID {CorrelationId}",
+                "Failed to process message with ID {MessageId} and correlation ID {CorrelationId} (delivery {DeliveryCount}), abandoning in {RetryDelay}",
                 args.Message.MessageId,
-                args.Message.CorrelationId);
+                args.Message.CorrelationId,
+                args.Message.DeliveryCount,
+                retryDelay);
 
-            // If the message is abandoned, it will be made available for reprocessing immediately.
+            // An abandoned message is made available for reprocessing immediately, so wait before abandoning it to
+            // survive short outages of external dependencies. The processor keeps renewing the lock in the meantime.
+            await DelayRetry(retryDelay, args.CancellationToken);
+
             var exceptionDetails = GetExceptionDetails(ex);
             await args.AbandonMessageAsync(args.Message, exceptionDetails, CancellationToken.None);
 
@@ -98,6 +105,32 @@ internal sealed partial class ServiceBusTransport
 
         // Settle without cancellation, so a successfully handled message isn't reprocessed when the processor is stopping
         await args.CompleteMessageAsync(args.Message, CancellationToken.None);
+    }
+
+    internal static TimeSpan GetRetryDelay(int deliveryCount, TimeSpan retryBackoffBase, TimeSpan retryBackoffMax)
+    {
+        if (retryBackoffBase <= TimeSpan.Zero)
+            return TimeSpan.Zero;
+
+        // Cap the exponent to prevent overflow, the result is capped by the max backoff anyway
+        var exponent = Math.Clamp(deliveryCount - 1, 0, 16);
+        var delayTicks = retryBackoffBase.Ticks << exponent;
+        return delayTicks >= retryBackoffMax.Ticks ? retryBackoffMax : TimeSpan.FromTicks(delayTicks);
+    }
+
+    private static async Task DelayRetry(TimeSpan retryDelay, CancellationToken cancellationToken)
+    {
+        if (retryDelay <= TimeSpan.Zero)
+            return;
+
+        try
+        {
+            await Task.Delay(retryDelay, cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            // The processor is stopping, abandon right away so the message can be picked up by another instance
+        }
     }
 
     private static IDictionary<string, object> GetExceptionDetails(Exception exception)

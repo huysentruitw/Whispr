@@ -29,6 +29,21 @@ public sealed record AzureServiceBusOptions
     public int QueueConcurrencyLimit { get; set; } = 1;
 
     /// <summary>
+    /// The delay before a failed message is made available for reprocessing, after its first delivery.
+    /// The delay doubles with each delivery. Defaults to <see cref="TimeSpan.Zero"/>, which retries immediately.
+    /// </summary>
+    /// <remarks>
+    /// While waiting, the message stays locked and occupies one of the <see cref="QueueConcurrencyLimit"/> slots.
+    /// </remarks>
+    public TimeSpan RetryBackoffBase { get; set; } = TimeSpan.Zero;
+
+    /// <summary>
+    /// The maximum delay before a failed message is made available for reprocessing.
+    /// </summary>
+    /// <remarks>Keep this well below the lock renewal duration of 5 minutes, or the message lock is lost while waiting.</remarks>
+    public TimeSpan RetryBackoffMax { get; set; } = TimeSpan.FromSeconds(30);
+
+    /// <summary>
     /// The options applied when a queue is created.
     /// </summary>
     public QueueCreationOptions QueueCreation { get; } = new();

@@ -14,6 +14,7 @@
 
 - Failed send attempts are retried with exponential backoff (`RetryBackoffBase`, `RetryBackoffMax`), so a message that keeps failing no longer blocks the outbox.
 - Optionally park messages after `MaxSendAttempts` failed send attempts. By default, messages are never parked.
+- Optional exponential back-off for redelivering messages that fail to be handled (`RetryBackoffBase`, `RetryBackoffMax`). By default, failed messages are still redelivered immediately.
 - Configurable settings for queues and topics created by the Azure Service Bus transport (`QueueCreation`, `TopicCreation`), e.g. for use with the Azure Service Bus emulator.
 
 ## 3.2.0
