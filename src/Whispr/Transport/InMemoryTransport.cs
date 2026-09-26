@@ -33,7 +33,7 @@ internal sealed class InMemoryTransport(ILogger<InMemoryTransport> logger) : ITr
                 {
                     try
                     {
-                        await callback(envelope, cancellationToken);
+                        await callback(envelope, CancellationToken.None);
                     }
                     catch (Exception ex)
                     {
