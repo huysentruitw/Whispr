@@ -4,7 +4,7 @@
 
 ⚡A lightweight message bus implementation for Azure Service Bus with EF Core outbox.
 
-Supports .NET 8 with EF Core 8 and .NET 10 with EF Core 10.
+Supports .NET 10 with EF Core 10.
 
 See the [release notes](RELEASE_NOTES.md) for changes and upgrade instructions.
 

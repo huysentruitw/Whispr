@@ -4,6 +4,7 @@
 
 ### ⚠️ Breaking changes
 
+- Dropped .NET 8 support, .NET 10 with EF Core 10 is required.
 - The outbox table requires a migration. Add an EF Core migration and apply it **before** deploying this version. Older versions keep working with the new schema, so a rolling deployment is safe.
   - New columns: `AttemptCount`, `NextAttemptAtUtc`, `ParkedAtUtc` and `LastError`.
   - New filtered index on pending messages.

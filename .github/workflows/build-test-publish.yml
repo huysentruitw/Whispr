@@ -46,10 +46,6 @@ jobs:
         }
         "NUGET_VERSION=$version" >> $env:GITHUB_ENV
         Write-Host "NuGet version: $version"
-    - name: Setup .NET 8
-      uses: actions/setup-dotnet@v1
-      with:
-        dotnet-version: '8.x'
     - name: Setup .NET 10
       uses: actions/setup-dotnet@v1
       with:
