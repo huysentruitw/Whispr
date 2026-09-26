@@ -7,6 +7,7 @@ internal sealed class MessagePublisher(
     ITopicNamingConvention topicNamingConvention,
     IMessageSender sender,
     IDiagnosticEventListener diagnosticEventListener,
+    JsonSerializerOptions jsonSerializerOptions,
     IOutbox? outbox = null) : IMessagePublisher
 {
     public async ValueTask Publish<TMessage>(TMessage message, Action<PublishOptions>? configure, CancellationToken cancellationToken)
@@ -64,16 +65,18 @@ internal sealed class MessagePublisher(
             ?? sender.Send(envelope.DestinationTopicName, serializedEnvelope, cancellationToken);
     }
 
-    private static string Serialize<TMessage>(Envelope<TMessage> envelope)
+    private string Serialize<TMessage>(Envelope<TMessage> envelope)
         where TMessage : class
     {
         var runtimeType = envelope.Message.GetType();
         if (runtimeType == typeof(TMessage))
-            return JsonSerializer.Serialize(envelope);
+            return JsonSerializer.Serialize(envelope, jsonSerializerOptions);
 
         // System.Text.Json serializes by declared type, which would drop the properties of the concrete message
-        var node = JsonSerializer.SerializeToNode(envelope)!;
-        node[nameof(Envelope<TMessage>.Message)] = JsonSerializer.SerializeToNode(envelope.Message, runtimeType);
-        return node.ToJsonString();
+        const string messagePropertyName = nameof(Envelope<TMessage>.Message);
+        var node = JsonSerializer.SerializeToNode(envelope, jsonSerializerOptions)!;
+        node[jsonSerializerOptions.PropertyNamingPolicy?.ConvertName(messagePropertyName) ?? messagePropertyName] =
+            JsonSerializer.SerializeToNode(envelope.Message, runtimeType, jsonSerializerOptions);
+        return node.ToJsonString(jsonSerializerOptions);
     }
 }

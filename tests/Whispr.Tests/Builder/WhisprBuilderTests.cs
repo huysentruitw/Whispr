@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
 using Whispr.Builder;
 using Whispr.Descriptors;
 
@@ -21,5 +22,23 @@ public sealed class WhisprBuilderTests
         Assert.NotNull(descriptors);
         Assert.Equal(builder.MessageHandlerDescriptors, descriptors);
         Assert.Equal(builder.Services, services);
+    }
+
+    [Fact]
+    public void Given_JsonSerializerOptionsConfiguredForOneBus_When_GetJsonSerializerOptions_Then_OnlyThatBusUsesThem()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddWhispr("BusA").ConfigureJsonSerializerOptions(options => options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase);
+        services.AddWhispr("BusB");
+        var serviceProvider = services.BuildServiceProvider();
+
+        // Act
+        var busAOptions = serviceProvider.GetJsonSerializerOptions("BusA");
+        var busBOptions = serviceProvider.GetJsonSerializerOptions("BusB");
+
+        // Assert
+        Assert.Equal(JsonNamingPolicy.CamelCase, busAOptions.PropertyNamingPolicy);
+        Assert.Null(busBOptions.PropertyNamingPolicy);
     }
 }

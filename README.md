@@ -88,6 +88,18 @@ services
         .AddQueueNamingConvention<MyQueueNamingConvention>();
 ```
 
+## 🧬 Serialization
+
+Messages are serialized with `System.Text.Json`, using the default `JsonSerializerOptions`. To customize the options, e.g. to serialize enums as strings:
+
+```csharp
+services
+    .AddWhispr()
+        .ConfigureJsonSerializerOptions(options => options.Converters.Add(new JsonStringEnumConverter()));
+```
+
+> ⚠️ Publishers and consumers of a message must use compatible options, e.g. the same property naming policy. Changing the options also affects messages that are already in transit or in the outbox.
+
 ## 🚌 Transports
 
 ### In-memory

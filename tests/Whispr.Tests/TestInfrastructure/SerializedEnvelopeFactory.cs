@@ -4,7 +4,7 @@ namespace Whispr.Tests.TestInfrastructure;
 
 public static class SerializedEnvelopeFactory
 {
-    public static SerializedEnvelope Create<TMessage>(TMessage message, Dictionary<string, string>? headers = null)
+    public static SerializedEnvelope Create<TMessage>(TMessage message, Dictionary<string, string>? headers = null, JsonSerializerOptions? jsonSerializerOptions = null)
         where TMessage : class
     {
         var envelope = new Envelope<TMessage>
@@ -21,7 +21,7 @@ public static class SerializedEnvelopeFactory
 
         return new SerializedEnvelope
         {
-            Body = JsonSerializer.Serialize(envelope),
+            Body = JsonSerializer.Serialize(envelope, jsonSerializerOptions),
             MessageType = envelope.MessageType,
             MessageId = envelope.MessageId,
             CorrelationId = envelope.CorrelationId,
