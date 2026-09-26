@@ -27,4 +27,14 @@ public sealed record AzureServiceBusOptions
     /// </summary>
     /// <remarks>This is a per queue setting. Different queues already process messages in parallel.</remarks>
     public int QueueConcurrencyLimit { get; set; } = 1;
+
+    /// <summary>
+    /// The options applied when a queue is created.
+    /// </summary>
+    public QueueCreationOptions QueueCreation { get; } = new();
+
+    /// <summary>
+    /// The options applied when a topic is created.
+    /// </summary>
+    public TopicCreationOptions TopicCreation { get; } = new();
 }

@@ -134,6 +134,20 @@ services
         .AddSubscriptionNamingConvention<MySubscriptionNamingConvention>();
 ```
 
+The settings of the queues and topics created by Whispr can be customized as well, e.g. to use a shorter `AutoDeleteOnIdle` with the Azure Service Bus emulator. These settings are only applied when creating an entity, existing queues and topics are not updated.
+
+```csharp
+services
+    .AddWhispr()
+        .AddAzureServiceBusTransport(options =>
+        {
+            options.QueueCreation.AutoDeleteOnIdle = TimeSpan.FromHours(1);
+            options.QueueCreation.DefaultMessageTimeToLive = TimeSpan.FromHours(1);
+            options.TopicCreation.AutoDeleteOnIdle = TimeSpan.FromHours(1);
+            options.TopicCreation.DefaultMessageTimeToLive = TimeSpan.FromHours(1);
+        });
+```
+
 ☝️ A message with a type that isn't handled by the receiving handler is dead-lettered immediately with reason `Unsupported message type`. This typically happens when a handler no longer handles a message type, while its subscription on that topic still exists. Delete the stale subscription to stop these messages from arriving.
 
 ## 🪄 Filters

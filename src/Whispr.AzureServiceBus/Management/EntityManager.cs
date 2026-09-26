@@ -1,6 +1,9 @@
 ﻿namespace Whispr.AzureServiceBus.Management;
 
-internal sealed class EntityManager(ServiceBusAdministrationClient administrationClient)
+internal sealed class EntityManager(
+    ServiceBusAdministrationClient administrationClient,
+    QueueCreationOptions queueCreationOptions,
+    TopicCreationOptions topicCreationOptions)
 {
     public async Task CreateQueueIfNotExists(string queueName, CancellationToken cancellationToken = default)
     {
@@ -14,12 +17,12 @@ internal sealed class EntityManager(ServiceBusAdministrationClient administratio
         {
             var createOptions = new CreateQueueOptions(queueName)
             {
-                AutoDeleteOnIdle = TimeSpan.FromDays(427),
-                DefaultMessageTimeToLive = TimeSpan.FromDays(365),
+                AutoDeleteOnIdle = queueCreationOptions.AutoDeleteOnIdle,
+                DefaultMessageTimeToLive = queueCreationOptions.DefaultMessageTimeToLive,
                 EnableBatchedOperations = true,
                 DeadLetteringOnMessageExpiration = true,
-                LockDuration = TimeSpan.FromMinutes(5),
-                MaxDeliveryCount = 5,
+                LockDuration = queueCreationOptions.LockDuration,
+                MaxDeliveryCount = queueCreationOptions.MaxDeliveryCount,
             };
 
             var createResponse = await administrationClient.CreateQueueAsync(createOptions, cancellationToken);
@@ -46,8 +49,8 @@ internal sealed class EntityManager(ServiceBusAdministrationClient administratio
         {
             var createOptions = new CreateTopicOptions(topicName)
             {
-                AutoDeleteOnIdle = TimeSpan.FromDays(427),
-                DefaultMessageTimeToLive = TimeSpan.FromDays(365),
+                AutoDeleteOnIdle = topicCreationOptions.AutoDeleteOnIdle,
+                DefaultMessageTimeToLive = topicCreationOptions.DefaultMessageTimeToLive,
                 EnableBatchedOperations = true,
             };
 
