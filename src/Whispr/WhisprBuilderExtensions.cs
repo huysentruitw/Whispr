@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 
 namespace Whispr;
 
@@ -222,6 +223,31 @@ public static class WhisprBuilderExtensions
             (sp, key) => factory(sp, (string)key!));
         return builder;
     }
+
+    #endregion
+
+    #region Serialization
+
+    /// <summary>
+    /// Configures the JSON serializer options used to serialize and deserialize messages.
+    /// </summary>
+    /// <remarks>
+    /// Publishers and consumers of a message must use compatible options, e.g. the same property naming policy,
+    /// otherwise messages can't be deserialized. Changing the options also affects messages that are already in transit.
+    /// </remarks>
+    /// <param name="builder">The <see cref="WhisprBuilder"/>.</param>
+    /// <param name="configureOptions">The action to configure the <see cref="JsonSerializerOptions"/>.</param>
+    /// <returns>The <see cref="WhisprBuilder"/>.</returns>
+    public static WhisprBuilder ConfigureJsonSerializerOptions(this WhisprBuilder builder, Action<JsonSerializerOptions> configureOptions)
+    {
+        builder.Services.Configure(GetJsonSerializerOptionsName(builder.BusName), configureOptions);
+        return builder;
+    }
+
+    internal static JsonSerializerOptions GetJsonSerializerOptions(this IServiceProvider serviceProvider, string busName)
+        => serviceProvider.GetRequiredService<IOptionsMonitor<JsonSerializerOptions>>().Get(GetJsonSerializerOptionsName(busName));
+
+    private static string GetJsonSerializerOptionsName(string busName) => $"Whispr_{busName}";
 
     #endregion
 

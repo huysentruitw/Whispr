@@ -4,7 +4,8 @@ internal sealed class MessageProcessor<TMessageHandler, TMessage>(
     string busName,
     IEnumerable<IConsumeFilter> consumeFilters,
     TMessageHandler handler,
-    IDiagnosticEventListener diagnosticEventListener) : IMessageProcessor
+    IDiagnosticEventListener diagnosticEventListener,
+    JsonSerializerOptions jsonSerializerOptions) : IMessageProcessor
     where TMessageHandler : IMessageHandler<TMessage>
     where TMessage : class
 {
@@ -16,7 +17,7 @@ internal sealed class MessageProcessor<TMessageHandler, TMessage>(
             queueName: queueName,
             envelope: serializedEnvelope);
 
-        var envelope = JsonSerializer.Deserialize<Envelope<TMessage>>(serializedEnvelope.Body)
+        var envelope = JsonSerializer.Deserialize<Envelope<TMessage>>(serializedEnvelope.Body, jsonSerializerOptions)
             ?? throw new InvalidOperationException("Failed to deserialize message envelope");
 
         // Build the consuming pipeline

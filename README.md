@@ -4,7 +4,9 @@
 
 ⚡A lightweight message bus implementation for Azure Service Bus with EF Core outbox.
 
-Supports .NET 8 with EF Core 8 and .NET 10 with EF Core 10.
+Supports .NET 10 with EF Core 10.
+
+See the [release notes](RELEASE_NOTES.md) for changes and upgrade instructions.
 
 ## 🚀 Example usage
 
@@ -86,6 +88,18 @@ services
         .AddQueueNamingConvention<MyQueueNamingConvention>();
 ```
 
+## 🧬 Serialization
+
+Messages are serialized with `System.Text.Json`, using the default `JsonSerializerOptions`. To customize the options, e.g. to serialize enums as strings:
+
+```csharp
+services
+    .AddWhispr()
+        .ConfigureJsonSerializerOptions(options => options.Converters.Add(new JsonStringEnumConverter()));
+```
+
+> ⚠️ Publishers and consumers of a message must use compatible options, e.g. the same property naming policy. Changing the options also affects messages that are already in transit or in the outbox.
+
 ## 🚌 Transports
 
 ### In-memory
@@ -131,6 +145,34 @@ services
     .AddWhispr()
         .AddSubscriptionNamingConvention<MySubscriptionNamingConvention>();
 ```
+
+The settings of the queues and topics created by Whispr can be customized as well, e.g. to use a shorter `AutoDeleteOnIdle` with the Azure Service Bus emulator. These settings are only applied when creating an entity, existing queues and topics are not updated.
+
+```csharp
+services
+    .AddWhispr()
+        .AddAzureServiceBusTransport(options =>
+        {
+            options.QueueCreation.AutoDeleteOnIdle = TimeSpan.FromHours(1);
+            options.QueueCreation.DefaultMessageTimeToLive = TimeSpan.FromHours(1);
+            options.TopicCreation.AutoDeleteOnIdle = TimeSpan.FromHours(1);
+            options.TopicCreation.DefaultMessageTimeToLive = TimeSpan.FromHours(1);
+        });
+```
+
+When a message handler throws, the message is abandoned and redelivered immediately, until `QueueCreation.MaxDeliveryCount` is reached and the message is dead-lettered. To prevent a short outage of an external dependency from dead-lettering messages right away, enable an exponential back-off by setting `RetryBackoffBase`. The delay then doubles with each delivery, capped at `RetryBackoffMax` (30 seconds by default).
+
+```csharp
+services
+    .AddWhispr()
+        .AddAzureServiceBusTransport(options =>
+        {
+            options.RetryBackoffBase = TimeSpan.FromSeconds(1);
+            options.RetryBackoffMax = TimeSpan.FromSeconds(30);
+        });
+```
+
+> ⚠️ While waiting, the message stays locked and occupies a `QueueConcurrencyLimit` slot of its queue.
 
 ☝️ A message with a type that isn't handled by the receiving handler is dead-lettered immediately with reason `Unsupported message type`. This typically happens when a handler no longer handles a message type, while its subscription on that topic still exists. Delete the stale subscription to stop these messages from arriving.
 
@@ -186,6 +228,9 @@ services
             options.ProcessedMessageRetentionPeriod = TimeSpan.FromDays(1);
             options.ProcessedMessageCleanupDelay = TimeSpan.FromHours(1);
             options.ProcessedMessageCleanupBatchSize = 100;
+            options.MaxSendAttempts = null; // Never park messages
+            options.RetryBackoffBase = TimeSpan.FromSeconds(1);
+            options.RetryBackoffMax = TimeSpan.FromMinutes(5);
         });
 ```
 
@@ -203,6 +248,26 @@ public class MyDbContext : DbContext
         modelBuilder.AddOutboxMessageEntity(schemaName: "Application");
     }
 }
+```
+
+3. Add an EF Core migration to create the outbox table.
+
+### Retries and parked messages
+
+When a send attempt fails, the message is retried with exponential backoff, starting at `RetryBackoffBase` and capped at `RetryBackoffMax`. Other messages are sent in the meantime, so a message that keeps failing never blocks the outbox. The number of failed send attempts and the last error are stored in the `AttemptCount` and `LastError` columns.
+
+By default, a message is retried until it's sent. When `MaxSendAttempts` is set, a message is parked after that many failed send attempts, by setting `ParkedAtUtc`. Parked messages are no longer retried and are not removed by the cleanup service.
+
+> ⚠️ A transport outage causes all send attempts to fail, so a low `MaxSendAttempts` can park a lot of messages.
+
+To find parked messages and retry them:
+
+```sql
+SELECT * FROM [Application].[OutboxMessage] WHERE [ParkedAtUtc] IS NOT NULL;
+
+UPDATE [Application].[OutboxMessage]
+SET [ParkedAtUtc] = NULL, [AttemptCount] = 0, [NextAttemptAtUtc] = NULL
+WHERE [ParkedAtUtc] IS NOT NULL;
 ```
 
 ### Pipeline with outbox

@@ -4,7 +4,7 @@
     <Title>Whispr.AzureServiceBus</Title>
     <Description>A lightweight message bus implementation for Azure Service Bus with EF Core outbox. Azure Service Bus integration.</Description>
 
-    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks>net10.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
 

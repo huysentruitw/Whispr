@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Runtime.CompilerServices;
+using System.Text.Json;
 using Whispr.Bus;
 using Whispr.Conventions;
 using Whispr.Filtering;
@@ -125,9 +126,47 @@ public sealed class MessagePublisherTests
         Assert.Equal("Derived content", envelope.Message.Extra);
     }
 
+    [Fact]
+    public async Task Given_JsonSerializerOptions_When_Publish_Then_SerializesWithOptions()
+    {
+        // Arrange
+        var jsonSerializerOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+        var testHarness = TestHarness.Create([], jsonSerializerOptions);
+        var sentEnvelope = testHarness.CaptureSentEnvelope();
+
+        // Act
+        await testHarness.Publisher.Publish(new TestMessage("Test content"), null, CancellationToken.None);
+
+        // Assert
+        Assert.NotNull(sentEnvelope.Value);
+        using var body = JsonDocument.Parse(sentEnvelope.Value.Body);
+        Assert.Equal("Test content", body.RootElement.GetProperty("message").GetProperty("text").GetString());
+    }
+
+    [Fact]
+    public async Task Given_JsonSerializerOptionsAndMessagePublishedAsBaseType_When_Publish_Then_SerializesRuntimeTypeWithOptions()
+    {
+        // Arrange
+        var jsonSerializerOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+        var testHarness = TestHarness.Create([], jsonSerializerOptions);
+        var sentEnvelope = testHarness.CaptureSentEnvelope();
+        BaseTestMessage message = new DerivedTestMessage("Base content", "Derived content");
+
+        // Act
+        await testHarness.Publisher.Publish(message, null, CancellationToken.None);
+
+        // Assert
+        Assert.NotNull(sentEnvelope.Value);
+        using var body = JsonDocument.Parse(sentEnvelope.Value.Body);
+        Assert.False(body.RootElement.TryGetProperty("Message", out _));
+        var messageElement = body.RootElement.GetProperty("message");
+        Assert.Equal("Base content", messageElement.GetProperty("text").GetString());
+        Assert.Equal("Derived content", messageElement.GetProperty("extra").GetString());
+    }
+
     private sealed class TestHarness
     {
-        public static TestHarness Create(IEnumerable<IPublishFilter> filters)
+        public static TestHarness Create(IEnumerable<IPublishFilter> filters, JsonSerializerOptions? jsonSerializerOptions = null)
         {
             var messageSenderMock = new Mock<IMessageSender>();
             var topicNamingConvention = CreateTopicNamingConvention();
@@ -137,7 +176,8 @@ public sealed class MessagePublisherTests
                 filters,
                 topicNamingConvention,
                 messageSenderMock.Object,
-                diagnosticEventListener: new NoOpDiagnosticsEventListener());
+                diagnosticEventListener: new NoOpDiagnosticsEventListener(),
+                jsonSerializerOptions: jsonSerializerOptions ?? new JsonSerializerOptions());
 
             return new TestHarness { Publisher = publisher, MessageSender = messageSenderMock, Outbox = null };
         }
@@ -154,7 +194,8 @@ public sealed class MessagePublisherTests
                 topicNamingConvention,
                 messageSenderMock.Object,
                 outbox: outboxMock.Object,
-                diagnosticEventListener: new NoOpDiagnosticsEventListener());
+                diagnosticEventListener: new NoOpDiagnosticsEventListener(),
+                jsonSerializerOptions: new JsonSerializerOptions());
 
             return new TestHarness { Publisher = publisher, MessageSender = messageSenderMock, Outbox = outboxMock };
         }
@@ -164,6 +205,15 @@ public sealed class MessagePublisherTests
         public required Mock<IMessageSender> MessageSender { get; internal init; }
         
         public Mock<IOutbox>? Outbox { get; internal init; }
+
+        public StrongBox<SerializedEnvelope?> CaptureSentEnvelope()
+        {
+            var sentEnvelope = new StrongBox<SerializedEnvelope?>();
+            MessageSender
+                .Setup(x => x.Send(It.IsAny<string>(), It.IsAny<SerializedEnvelope>(), It.IsAny<CancellationToken>()))
+                .Callback<string, SerializedEnvelope, CancellationToken>((_, envelope, _) => sentEnvelope.Value = envelope);
+            return sentEnvelope;
+        }
 
         public void VerifyTransportNotUsed()
         {

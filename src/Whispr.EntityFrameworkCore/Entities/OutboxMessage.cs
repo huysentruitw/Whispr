@@ -7,6 +7,8 @@ namespace Whispr.EntityFrameworkCore.Entities;
 /// </summary>
 public sealed record OutboxMessage
 {
+    internal const int LastErrorMaxLength = 2000;
+
     /// <summary>
     /// The outbox message ID.
     /// </summary>
@@ -56,6 +58,27 @@ public sealed record OutboxMessage
     /// The date and time the outbox message was processed in UTC.
     /// </summary>
     public DateTimeOffset? ProcessedAtUtc { get; set; }
+
+    /// <summary>
+    /// The number of failed send attempts.
+    /// </summary>
+    public int AttemptCount { get; set; }
+
+    /// <summary>
+    /// The earliest date and time of the next send attempt in UTC. If <see langword="null"/>, the message is sent as soon as possible.
+    /// </summary>
+    public DateTimeOffset? NextAttemptAtUtc { get; set; }
+
+    /// <summary>
+    /// The date and time the outbox message was parked in UTC, after reaching <see cref="OutboxOptions.MaxSendAttempts"/>.
+    /// A parked message is no longer retried, until this value is reset.
+    /// </summary>
+    public DateTimeOffset? ParkedAtUtc { get; set; }
+
+    /// <summary>
+    /// The error of the last failed send attempt.
+    /// </summary>
+    public string? LastError { get; set; }
 }
 
 internal sealed class OutboxMessageEntityTypeConfiguration : IEntityTypeConfiguration<OutboxMessage>
@@ -72,7 +95,7 @@ internal sealed class OutboxMessageEntityTypeConfiguration : IEntityTypeConfigur
 
         builder.Property(x => x.MessageType)
             .IsRequired()
-            .HasMaxLength(250);
+            .HasMaxLength(500);
 
         builder.Property(x => x.MessageId)
             .IsRequired()
@@ -88,13 +111,28 @@ internal sealed class OutboxMessageEntityTypeConfiguration : IEntityTypeConfigur
 
         builder.Property(x => x.DestinationTopicName)
             .IsRequired()
-            .HasMaxLength(100);
+            .HasMaxLength(260); // Max length of an Azure Service Bus topic name
 
         builder.Property(x => x.CreatedAtUtc)
             .IsRequired();
 
         builder.Property(x => x.ProcessedAtUtc);
 
+        builder.Property(x => x.AttemptCount)
+            .IsRequired();
+
+        builder.Property(x => x.NextAttemptAtUtc);
+
+        builder.Property(x => x.ParkedAtUtc);
+
+        builder.Property(x => x.LastError)
+            .HasMaxLength(OutboxMessage.LastErrorMaxLength);
+
+        // Used by the cleanup of processed messages
         builder.HasIndex(x => new { x.ProcessedAtUtc, x.CreatedAtUtc });
+
+        // Only contains pending messages, so it stays small regardless of the number of processed or parked messages
+        builder.HasIndex(x => x.CreatedAtUtc)
+            .HasFilter("[ProcessedAtUtc] IS NULL AND [ParkedAtUtc] IS NULL");
     }
 }

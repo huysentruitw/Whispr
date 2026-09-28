@@ -1,5 +1,6 @@
 ﻿using Whispr.Bus;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Whispr.Filtering;
 using Whispr.Tests.TestInfrastructure;
 
@@ -95,14 +96,35 @@ public sealed class MessageProcessorTests
             testHarness.Processor.Process("queue", serializedEnvelope, CancellationToken.None).AsTask());
     }
 
+    [Fact]
+    public async Task Given_JsonSerializerOptions_When_Process_Then_DeserializesWithOptions()
+    {
+        // Arrange
+        var jsonSerializerOptions = new JsonSerializerOptions { Converters = { new JsonStringEnumConverter() } };
+        var testHarness = TestHarness<ColorHandler, ColorMessage>.Create([], jsonSerializerOptions);
+        var serializedEnvelope = SerializedEnvelopeFactory.Create(new ColorMessage(Color.Blue), jsonSerializerOptions: jsonSerializerOptions);
+        Assert.Contains("\"Blue\"", serializedEnvelope.Body);
+
+        // Act
+        await testHarness.Processor.Process("queue", serializedEnvelope, CancellationToken.None);
+
+        // Assert
+        Assert.Equal(Color.Blue, testHarness.Handler.LastHandledMessage?.Color);
+    }
+
     private sealed class TestHarness<THandler, TMessage>
         where THandler : IMessageHandler<TMessage>, new()
         where TMessage : class
     {
-        public static TestHarness<THandler, TMessage> Create(IEnumerable<IConsumeFilter> filters)
+        public static TestHarness<THandler, TMessage> Create(IEnumerable<IConsumeFilter> filters, JsonSerializerOptions? jsonSerializerOptions = null)
         {
             var handler = new THandler();
-            var processor = new MessageProcessor<THandler, TMessage>("BusName", filters, handler, new NoOpDiagnosticsEventListener());
+            var processor = new MessageProcessor<THandler, TMessage>(
+                "BusName",
+                filters,
+                handler,
+                new NoOpDiagnosticsEventListener(),
+                jsonSerializerOptions ?? new JsonSerializerOptions());
 
             return new TestHarness<THandler, TMessage>
             {
@@ -145,4 +167,23 @@ public sealed class MessageProcessorTests
     }
     
     private sealed record TestMessage(string Text);
+
+    private sealed class ColorHandler : IMessageHandler<ColorMessage>
+    {
+        public ColorMessage? LastHandledMessage { get; private set; }
+
+        public ValueTask Handle(Envelope<ColorMessage> envelope, CancellationToken cancellationToken)
+        {
+            LastHandledMessage = envelope.Message;
+            return ValueTask.CompletedTask;
+        }
+    }
+
+    private sealed record ColorMessage(Color Color);
+
+    private enum Color
+    {
+        Red,
+        Blue,
+    }
 }

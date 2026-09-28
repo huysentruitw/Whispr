@@ -86,5 +86,6 @@ internal sealed class MessageBusLifecycleManager(
             busName,
             serviceProvider.GetKeyedServices<IConsumeFilter>(busName),
             serviceProvider.GetRequiredKeyedService<TMessageHandler>(busName),
-            serviceProvider.GetRequiredService<IDiagnosticEventListener>());
+            serviceProvider.GetRequiredService<IDiagnosticEventListener>(),
+            serviceProvider.GetJsonSerializerOptions(busName));
 }

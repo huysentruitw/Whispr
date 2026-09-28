@@ -22,6 +22,23 @@ public sealed record OutboxOptions
     public int MaxMessageBatchSize { get; set; } = 100;
 
     /// <summary>
+    /// The maximum number of send attempts, after which a message is parked by setting <see cref="OutboxMessage.ParkedAtUtc"/>.
+    /// If <see langword="null"/>, a message is never parked and retried until it's sent.
+    /// </summary>
+    /// <remarks>Keep in mind that a transport outage causes all send attempts to fail, so a low value can park a lot of messages.</remarks>
+    public int? MaxSendAttempts { get; set; }
+
+    /// <summary>
+    /// The delay before the first retry of a message. The delay doubles with each failed send attempt.
+    /// </summary>
+    public TimeSpan RetryBackoffBase { get; set; } = TimeSpan.FromSeconds(1);
+
+    /// <summary>
+    /// The maximum delay between retries of a message.
+    /// </summary>
+    public TimeSpan RetryBackoffMax { get; set; } = TimeSpan.FromMinutes(5);
+
+    /// <summary>
     /// Set to <see langword="true"/> to enable message retention.
     /// </summary>
     public bool EnableMessageRetention { get; set; } = true;

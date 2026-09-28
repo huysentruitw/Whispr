@@ -16,7 +16,10 @@ public static class ServiceCollectionExtensions
     public static WhisprBuilder AddWhispr(this IServiceCollection services, string? busName = null)
     {
         busName ??= WhisprDefaults.DefaultBusName;
-        
+
+        // Required to resolve the JSON serializer options of the bus
+        services.AddOptions();
+
         services.TryAddSingleton<IDiagnosticEventListener, ActivityDiagnosticEventListener>();
 
         services.AddSingleton<IHostedService>(serviceProvider => new MessageBusLifecycleManager(
@@ -45,6 +48,7 @@ public static class ServiceCollectionExtensions
                 serviceProvider.GetRequiredKeyedService<ITopicNamingConvention>(key),
                 serviceProvider.GetRequiredKeyedService<IMessageSender>(key),
                 serviceProvider.GetRequiredService<IDiagnosticEventListener>(),
+                serviceProvider.GetJsonSerializerOptions(busName),
                 serviceProvider.GetKeyedService<IOutbox>(key)));
 
         // Configure publisher for default bus

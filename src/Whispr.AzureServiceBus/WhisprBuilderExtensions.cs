@@ -62,7 +62,15 @@ public static class WhisprBuilderExtensions
         
         builder.Services.TryAddKeyedSingleton<EntityManager>(
             builder.BusName,
-            (serviceProvider, key) => new EntityManager(serviceProvider.GetRequiredKeyedService<ServiceBusAdministrationClient>(key)));
+            (serviceProvider, key) =>
+            {
+                var options = serviceProvider.GetRequiredService<IOptionsMonitor<AzureServiceBusOptions>>().Get(optionsName);
+
+                return new EntityManager(
+                    serviceProvider.GetRequiredKeyedService<ServiceBusAdministrationClient>(key),
+                    options.QueueCreation,
+                    options.TopicCreation);
+            });
         
         builder.Services.TryAddKeyedSingleton<ITransport>(
             builder.BusName,
