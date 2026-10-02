@@ -17,6 +17,7 @@
 - Optional exponential back-off for redelivering messages that fail to be handled (`RetryBackoffBase`, `RetryBackoffMax`). By default, failed messages are still redelivered immediately.
 - Configurable `JsonSerializerOptions` for message serialization (`ConfigureJsonSerializerOptions`). The defaults are unchanged.
 - Configurable settings for queues and topics created by the Azure Service Bus transport (`QueueCreation`, `TopicCreation`), e.g. for use with the Azure Service Bus emulator.
+- Messages that fail to deserialize are dead-lettered immediately with reason `Deserialization failed`, instead of being redelivered until the max delivery count.
 
 ## 3.2.0
 

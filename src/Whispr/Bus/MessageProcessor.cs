@@ -17,8 +17,7 @@ internal sealed class MessageProcessor<TMessageHandler, TMessage>(
             queueName: queueName,
             envelope: serializedEnvelope);
 
-        var envelope = JsonSerializer.Deserialize<Envelope<TMessage>>(serializedEnvelope.Body, jsonSerializerOptions)
-            ?? throw new InvalidOperationException("Failed to deserialize message envelope");
+        var envelope = Deserialize(serializedEnvelope);
 
         // Build the consuming pipeline
         Func<Envelope<TMessage>, CancellationToken, ValueTask> pipeline = handler.Handle;
@@ -30,6 +29,19 @@ internal sealed class MessageProcessor<TMessageHandler, TMessage>(
 
         // Execute the consuming pipeline
         await pipeline(envelope, cancellationToken);
+    }
+
+    private Envelope<TMessage> Deserialize(SerializedEnvelope serializedEnvelope)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<Envelope<TMessage>>(serializedEnvelope.Body, jsonSerializerOptions)
+                ?? throw new MessageDeserializationException(serializedEnvelope.MessageType);
+        }
+        catch (JsonException ex)
+        {
+            throw new MessageDeserializationException(serializedEnvelope.MessageType, ex);
+        }
     }
 }
 

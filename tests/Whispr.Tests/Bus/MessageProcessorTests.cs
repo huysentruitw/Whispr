@@ -77,7 +77,7 @@ public sealed class MessageProcessorTests
     }
 
     [Fact]
-    public async Task Given_InvalidJson_When_Process_Then_ThrowsException()
+    public async Task Given_InvalidJson_When_Process_Then_ThrowsMessageDeserializationException()
     {
         // Arrange
         var testHarness = TestHarness<TestHandler, TestMessage>.Create([]);
@@ -90,6 +90,41 @@ public sealed class MessageProcessorTests
             CorrelationId = Guid.NewGuid().ToString("N"),
             DeferredUntil = null
         };
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<MessageDeserializationException>(() =>
+            testHarness.Processor.Process("queue", serializedEnvelope, CancellationToken.None).AsTask());
+        Assert.Equal(typeof(TestMessage).FullName, exception.MessageType);
+        Assert.IsType<JsonException>(exception.InnerException);
+    }
+
+    [Fact]
+    public async Task Given_NullJson_When_Process_Then_ThrowsMessageDeserializationException()
+    {
+        // Arrange
+        var testHarness = TestHarness<TestHandler, TestMessage>.Create([]);
+
+        var serializedEnvelope = new SerializedEnvelope
+        {
+            Body = "null",
+            MessageType = typeof(TestMessage).FullName!,
+            MessageId = Guid.NewGuid().ToString("N"),
+            CorrelationId = Guid.NewGuid().ToString("N"),
+            DeferredUntil = null
+        };
+
+        // Act & Assert
+        await Assert.ThrowsAsync<MessageDeserializationException>(() =>
+            testHarness.Processor.Process("queue", serializedEnvelope, CancellationToken.None).AsTask());
+    }
+
+    [Fact]
+    public async Task Given_HandlerThrowsJsonException_When_Process_Then_ExceptionIsNotWrapped()
+    {
+        // Arrange
+        var filter = new TestConsumeFilter(_ => throw new JsonException("Handler failure"));
+        var testHarness = TestHarness<TestHandler, TestMessage>.Create([filter]);
+        var serializedEnvelope = SerializedEnvelopeFactory.Create(new TestMessage("Test"));
 
         // Act & Assert
         await Assert.ThrowsAsync<JsonException>(() =>
