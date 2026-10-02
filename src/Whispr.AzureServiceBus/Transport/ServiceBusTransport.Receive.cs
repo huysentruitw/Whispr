@@ -42,6 +42,8 @@ internal sealed partial class ServiceBusTransport
                 args.EntityPath,
                 args.Message.LockedUntil);
 
+            // Free prefetch credit by settling the message
+            await AbandonQuietly(args);
             return;
         }
 
@@ -136,6 +138,18 @@ internal sealed partial class ServiceBusTransport
 
         // Settle without cancellation, so a successfully handled message isn't reprocessed when the processor is stopping
         await args.CompleteMessageAsync(args.Message, CancellationToken.None);
+    }
+
+    private static async Task AbandonQuietly(ProcessMessageEventArgs args)
+    {
+        try
+        {
+            await args.AbandonMessageAsync(args.Message, cancellationToken: CancellationToken.None);
+        }
+        catch (ServiceBusException)
+        {
+            // The lock is gone already, which releases the message just the same
+        }
     }
 
     internal static bool IsLockExpired(DateTimeOffset lockedUntil, DateTimeOffset now)
