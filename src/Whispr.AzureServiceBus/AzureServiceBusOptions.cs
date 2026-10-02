@@ -44,6 +44,16 @@ public sealed record AzureServiceBusOptions
     public TimeSpan RetryBackoffMax { get; set; } = TimeSpan.FromSeconds(30);
 
     /// <summary>
+    /// Releases the processing slot as soon as a handled message's completion is sent, instead of when the broker acknowledges it.
+    /// </summary>
+    public bool CompleteMessagesInBackground { get; set; } = false;
+
+    /// <summary>
+    /// The maximum number of completions per queue awaiting the broker's acknowledgement when <see cref="CompleteMessagesInBackground"/> is enabled.
+    /// </summary>
+    public int MaxPendingCompletions { get; set; } = 32;
+
+    /// <summary>
     /// The options applied when a queue is created.
     /// </summary>
     public QueueCreationOptions QueueCreation { get; } = new();

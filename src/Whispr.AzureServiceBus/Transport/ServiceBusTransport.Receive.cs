@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Collections.Concurrent;
+using System.Text;
 using Microsoft.Extensions.Logging;
 
 namespace Whispr.AzureServiceBus.Transport;
@@ -6,6 +7,8 @@ namespace Whispr.AzureServiceBus.Transport;
 /// <inheritdoc />
 internal sealed partial class ServiceBusTransport
 {
+    private readonly ConcurrentDictionary<string, PendingCompletions> _pendingCompletions = new();
+
     public async ValueTask StartListener(
         string queueName,
         string[] topicNames,
@@ -20,9 +23,24 @@ internal sealed partial class ServiceBusTransport
             await entityManager.CreateSubscriptionIfNotExists(subscriptionName, topicName, queueName, cancellationToken);
         }
 
-        var processor = processorFactory.GetOrCreateProcessor(queueName, options.QueueConcurrencyLimit);
+        var pendingCompletions = options.CompleteMessagesInBackground
+            ? _pendingCompletions.GetOrAdd(queueName, name => new PendingCompletions(
+                options.MaxPendingCompletions,
+                (exception, messageId) => logger.LogWarning(
+                    exception,
+                    "Failed to complete message with ID {MessageId} from queue {QueueName}, it will be redelivered once its lock expires",
+                    messageId,
+                    name)))
+            : null;
 
-        processor.ProcessMessageAsync += args => ProcessMessage(args, messageCallback);
+        // The broker withholds the next delivery while earlier ones are unsettled, so pending completions need prefetch room
+        var prefetchCount = pendingCompletions is null
+            ? options.QueueConcurrencyLimit
+            : options.QueueConcurrencyLimit + options.MaxPendingCompletions;
+
+        var processor = processorFactory.GetOrCreateProcessor(queueName, options.QueueConcurrencyLimit, prefetchCount);
+
+        processor.ProcessMessageAsync += args => ProcessMessage(args, messageCallback, pendingCompletions);
         processor.ProcessErrorAsync += ProcessError;
 
         await processor.StartProcessingAsync(cancellationToken);
@@ -30,7 +48,8 @@ internal sealed partial class ServiceBusTransport
 
     private async Task ProcessMessage(
         ProcessMessageEventArgs args,
-        Func<SerializedEnvelope, CancellationToken, ValueTask> messageCallback)
+        Func<SerializedEnvelope, CancellationToken, ValueTask> messageCallback,
+        PendingCompletions? pendingCompletions)
     {
         var messageType = args.Message.ApplicationProperties.TryGetValue(MessageTypePropertyName, out var messageTypeProperty)
             ? messageTypeProperty?.ToString()
@@ -104,7 +123,13 @@ internal sealed partial class ServiceBusTransport
         }
 
         // Settle without cancellation, so a successfully handled message isn't reprocessed when the processor is stopping
-        await args.CompleteMessageAsync(args.Message, CancellationToken.None);
+        if (pendingCompletions is null)
+        {
+            await args.CompleteMessageAsync(args.Message, CancellationToken.None);
+            return;
+        }
+
+        await pendingCompletions.Track(() => args.CompleteMessageAsync(args.Message, CancellationToken.None), args.Message.MessageId);
     }
 
     internal static TimeSpan GetRetryDelay(int deliveryCount, TimeSpan retryBackoffBase, TimeSpan retryBackoffMax)
@@ -167,6 +192,12 @@ internal sealed partial class ServiceBusTransport
         return Task.CompletedTask;
     }
 
-    public ValueTask StopListeners(CancellationToken cancellationToken = default)
-        => processorFactory.StopAllProcessors(cancellationToken);
+    public async ValueTask StopListeners(CancellationToken cancellationToken = default)
+    {
+        await processorFactory.StopAllProcessors(cancellationToken);
+
+        // Stopping a processor keeps its receiver open, so completions still in flight can land before it is disposed
+        foreach (var pendingCompletions in _pendingCompletions.Values)
+            await pendingCompletions.Drain(cancellationToken);
+    }
 }
