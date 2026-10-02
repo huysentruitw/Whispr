@@ -207,7 +207,7 @@ public sealed class ServiceBusTransportReceiveTests
         var harness = new Harness(new AzureServiceBusOptions { CompleteMessagesInBackground = true });
         await harness.StartListener();
         var completion = new TaskCompletionSource();
-        await harness.Processor.Deliver(harness.CreateArgs("message-1", completion.Task));
+        await harness.Processor.Deliver(harness.CreateArgs("message-1", completion.Task)).WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
         // Act
         var dispose = harness.Transport.DisposeAsync().AsTask();
