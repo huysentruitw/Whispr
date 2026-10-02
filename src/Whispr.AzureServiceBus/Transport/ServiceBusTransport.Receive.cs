@@ -32,6 +32,19 @@ internal sealed partial class ServiceBusTransport
         ProcessMessageEventArgs args,
         Func<SerializedEnvelope, CancellationToken, ValueTask> messageCallback)
     {
+        // A prefetched message waits in the buffer without lock renewal. When its lock expired in the meantime, the
+        // message was already released for redelivery, so processing it now would only process it twice.
+        if (IsLockExpired(args.Message.LockedUntil, DateTimeOffset.UtcNow))
+        {
+            logger.LogWarning(
+                "Skipping message with ID {MessageId} from queue {QueueName}: its lock expired at {LockedUntil} while waiting in the prefetch buffer",
+                args.Message.MessageId,
+                args.EntityPath,
+                args.Message.LockedUntil);
+
+            return;
+        }
+
         var messageType = args.Message.ApplicationProperties.TryGetValue(MessageTypePropertyName, out var messageTypeProperty)
             ? messageTypeProperty?.ToString()
             : null;
@@ -123,6 +136,13 @@ internal sealed partial class ServiceBusTransport
 
         // Settle without cancellation, so a successfully handled message isn't reprocessed when the processor is stopping
         await args.CompleteMessageAsync(args.Message, CancellationToken.None);
+    }
+
+    internal static bool IsLockExpired(DateTimeOffset lockedUntil, DateTimeOffset now)
+    {
+        // The lock expiry is set by the broker, so allow for clock skew and only skip when it clearly expired
+        var clockSkewTolerance = TimeSpan.FromSeconds(5);
+        return lockedUntil + clockSkewTolerance < now;
     }
 
     internal static TimeSpan GetRetryDelay(int deliveryCount, TimeSpan retryBackoffBase, TimeSpan retryBackoffMax)
