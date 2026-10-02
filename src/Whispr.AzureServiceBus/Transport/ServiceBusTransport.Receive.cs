@@ -33,12 +33,7 @@ internal sealed partial class ServiceBusTransport : IAsyncDisposable
             ? _pendingCompletions.GetOrAdd(queueName, _ => new PendingCompletions(options.MaxPendingCompletions))
             : null;
 
-        // The broker withholds the next delivery while earlier ones are unsettled, so pending completions need prefetch room
-        var prefetchCount = pendingCompletions is null
-            ? options.QueueConcurrencyLimit
-            : options.QueueConcurrencyLimit + options.MaxPendingCompletions;
-
-        var processor = processorFactory.GetOrCreateProcessor(queueName, options.QueueConcurrencyLimit, prefetchCount);
+        var processor = processorFactory.GetOrCreateProcessor(queueName, options.QueueConcurrencyLimit);
 
         processor.ProcessMessageAsync += args => ProcessMessage(args, messageCallback, pendingCompletions);
         processor.ProcessErrorAsync += ProcessError;

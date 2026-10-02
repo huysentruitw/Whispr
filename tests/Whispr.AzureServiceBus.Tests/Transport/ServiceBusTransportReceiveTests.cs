@@ -37,7 +37,7 @@ public sealed class ServiceBusTransportReceiveTests
     }
 
     [Fact]
-    public async Task Given_CompleteMessagesInBackground_When_StartListener_Then_PrefetchCoversConcurrencyAndPendingCompletions()
+    public async Task Given_CompleteMessagesInBackground_When_StartListener_Then_PrefetchEqualsConcurrency()
     {
         // Arrange
         var harness = new Harness(new AzureServiceBusOptions { QueueConcurrencyLimit = 4, CompleteMessagesInBackground = true, MaxPendingCompletions = 8 });
@@ -47,7 +47,7 @@ public sealed class ServiceBusTransportReceiveTests
 
         // Assert
         Assert.NotNull(harness.ProcessorOptions);
-        Assert.Equal(12, harness.ProcessorOptions.PrefetchCount);
+        Assert.Equal(4, harness.ProcessorOptions.PrefetchCount);
         Assert.Equal(4, harness.ProcessorOptions.MaxConcurrentCalls);
     }
 
