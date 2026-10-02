@@ -81,6 +81,24 @@ internal sealed partial class ServiceBusTransport
 
             return;
         }
+        catch (MessageDeserializationException ex)
+        {
+            logger.LogWarning(
+                ex,
+                "Dead-lettering message with ID {MessageId} from queue {QueueName}: failed to deserialize message type {MessageType}",
+                args.Message.MessageId,
+                args.EntityPath,
+                messageType);
+
+            // The body won't change between deliveries, so retrying won't help either.
+            await args.DeadLetterMessageAsync(
+                args.Message,
+                deadLetterReason: "Deserialization failed",
+                deadLetterErrorDescription: ex.InnerException?.Message ?? ex.Message,
+                cancellationToken: CancellationToken.None);
+
+            return;
+        }
         catch (Exception ex)
         {
             var retryDelay = GetRetryDelay(args.Message.DeliveryCount, options.RetryBackoffBase, options.RetryBackoffMax);
