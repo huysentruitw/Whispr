@@ -125,7 +125,7 @@ public sealed class ServiceBusTransportReceiveTests
     }
 
     [Fact]
-    public async Task Given_ExpiredLock_When_MessageReceived_Then_SkipsTheHandlerAndAbandons()
+    public async Task Given_ExpiredLock_When_MessageReceived_Then_SkipsTheHandlerWithoutSettling()
     {
         // Arrange
         var harness = new Harness(new AzureServiceBusOptions { CompleteMessagesInBackground = true });
@@ -135,14 +135,14 @@ public sealed class ServiceBusTransportReceiveTests
             handled = true;
             return ValueTask.CompletedTask;
         });
-        var args = harness.CreateArgs("message-1", Task.CompletedTask, lockedFor: TimeSpan.FromSeconds(-1));
+        var args = harness.CreateArgs("message-1", Task.CompletedTask, lockedFor: TimeSpan.FromSeconds(-10));
 
         // Act
         await harness.Processor.Deliver(args).WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
         // Assert
         Assert.False(handled);
-        harness.Receiver.Verify(x => x.AbandonMessageAsync(args.Message, It.IsAny<IDictionary<string, object>>(), CancellationToken.None), Times.Once);
+        harness.Receiver.Verify(x => x.AbandonMessageAsync(args.Message, It.IsAny<IDictionary<string, object>>(), CancellationToken.None), Times.Never);
         harness.Receiver.Verify(x => x.CompleteMessageAsync(It.IsAny<ServiceBusReceivedMessage>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 

@@ -29,4 +29,23 @@ public sealed class ServiceBusTransportTests
         // Assert
         Assert.Equal(TimeSpan.Zero, delay);
     }
+
+    [Theory]
+    [InlineData(60, false)]
+    [InlineData(0, false)]
+    [InlineData(-5, false)]
+    [InlineData(-6, true)]
+    [InlineData(-60, true)]
+    public void Given_LockedUntil_When_IsLockExpired_Then_OnlyReturnsTrueBeyondClockSkewTolerance(int lockedUntilOffsetSeconds, bool expected)
+    {
+        // Arrange
+        var now = new DateTimeOffset(2026, 10, 2, 12, 0, 0, TimeSpan.Zero);
+        var lockedUntil = now.AddSeconds(lockedUntilOffsetSeconds);
+
+        // Act
+        var expired = ServiceBusTransport.IsLockExpired(lockedUntil, now);
+
+        // Assert
+        Assert.Equal(expected, expired);
+    }
 }

@@ -51,10 +51,16 @@ internal sealed partial class ServiceBusTransport : IAsyncDisposable
         Func<SerializedEnvelope, CancellationToken, ValueTask> messageCallback,
         PendingCompletions? pendingCompletions)
     {
-        // Nothing renews the lock of a prefetched message, and once it expired the broker already handed the message to someone else
-        if (pendingCompletions is not null && args.Message.LockedUntil <= DateTimeOffset.UtcNow)
+        // A prefetched message waits in the buffer without lock renewal. When its lock expired in the meantime, the
+        // message was already released for redelivery, so processing it now would only process it twice.
+        if (IsLockExpired(args.Message.LockedUntil, DateTimeOffset.UtcNow))
         {
-            await AbandonQuietly(args);
+            logger.LogWarning(
+                "Skipping message with ID {MessageId} from queue {QueueName}: its lock expired at {LockedUntil} while waiting in the prefetch buffer",
+                args.Message.MessageId,
+                args.EntityPath,
+                args.Message.LockedUntil);
+
             return;
         }
 
@@ -187,6 +193,13 @@ internal sealed partial class ServiceBusTransport : IAsyncDisposable
         {
             // The lock is gone already, which releases the message just the same
         }
+    }
+
+    internal static bool IsLockExpired(DateTimeOffset lockedUntil, DateTimeOffset now)
+    {
+        // The lock expiry is set by the broker, so allow for clock skew and only skip when it clearly expired
+        var clockSkewTolerance = TimeSpan.FromSeconds(5);
+        return lockedUntil + clockSkewTolerance < now;
     }
 
     internal static TimeSpan GetRetryDelay(int deliveryCount, TimeSpan retryBackoffBase, TimeSpan retryBackoffMax)
