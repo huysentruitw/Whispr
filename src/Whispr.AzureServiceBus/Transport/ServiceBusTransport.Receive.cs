@@ -5,8 +5,11 @@ using Microsoft.Extensions.Logging;
 namespace Whispr.AzureServiceBus.Transport;
 
 /// <inheritdoc />
-internal sealed partial class ServiceBusTransport
+internal sealed partial class ServiceBusTransport : IAsyncDisposable
 {
+    // Lock renewal stops when the callback returns, so only complete in the background while the lock outlives a retried completion
+    private static readonly TimeSpan MinimumLockForBackgroundCompletion = TimeSpan.FromSeconds(60);
+
     private readonly ConcurrentDictionary<string, PendingCompletions> _pendingCompletions = new();
 
     public async ValueTask StartListener(
@@ -15,6 +18,9 @@ internal sealed partial class ServiceBusTransport
         Func<SerializedEnvelope, CancellationToken, ValueTask> messageCallback,
         CancellationToken cancellationToken = default)
     {
+        if (options.CompleteMessagesInBackground)
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxPendingCompletions, nameof(AzureServiceBusOptions.MaxPendingCompletions));
+
         var subscriptionName = subscriptionNamingConvention.Format(queueName);
         await entityManager.CreateQueueIfNotExists(queueName, cancellationToken);
         foreach (var topicName in topicNames)
@@ -24,13 +30,7 @@ internal sealed partial class ServiceBusTransport
         }
 
         var pendingCompletions = options.CompleteMessagesInBackground
-            ? _pendingCompletions.GetOrAdd(queueName, name => new PendingCompletions(
-                options.MaxPendingCompletions,
-                (exception, messageId) => logger.LogWarning(
-                    exception,
-                    "Failed to complete message with ID {MessageId} from queue {QueueName}, it will be redelivered once its lock expires",
-                    messageId,
-                    name)))
+            ? _pendingCompletions.GetOrAdd(queueName, _ => new PendingCompletions(options.MaxPendingCompletions))
             : null;
 
         // The broker withholds the next delivery while earlier ones are unsettled, so pending completions need prefetch room
@@ -51,6 +51,13 @@ internal sealed partial class ServiceBusTransport
         Func<SerializedEnvelope, CancellationToken, ValueTask> messageCallback,
         PendingCompletions? pendingCompletions)
     {
+        // Nothing renews the lock of a prefetched message, and once it expired the broker already handed the message to someone else
+        if (pendingCompletions is not null && args.Message.LockedUntil <= DateTimeOffset.UtcNow)
+        {
+            await AbandonQuietly(args);
+            return;
+        }
+
         var messageType = args.Message.ApplicationProperties.TryGetValue(MessageTypePropertyName, out var messageTypeProperty)
             ? messageTypeProperty?.ToString()
             : null;
@@ -123,13 +130,45 @@ internal sealed partial class ServiceBusTransport
         }
 
         // Settle without cancellation, so a successfully handled message isn't reprocessed when the processor is stopping
-        if (pendingCompletions is null)
+        if (pendingCompletions is null || args.Message.LockedUntil - DateTimeOffset.UtcNow < MinimumLockForBackgroundCompletion)
         {
             await args.CompleteMessageAsync(args.Message, CancellationToken.None);
             return;
         }
 
-        await pendingCompletions.Track(() => args.CompleteMessageAsync(args.Message, CancellationToken.None), args.Message.MessageId);
+        await pendingCompletions.Track(() => CompleteInBackground(args));
+    }
+
+    private async Task CompleteInBackground(ProcessMessageEventArgs args)
+    {
+        try
+        {
+            await args.CompleteMessageAsync(args.Message, CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(
+                ex,
+                "Failed to complete message with ID {MessageId} from queue {QueueName}",
+                args.Message.MessageId,
+                args.EntityPath);
+
+            // Like the processor does when an awaited completion fails, so the message is redelivered now instead of when its lock expires
+            if (ex is not ServiceBusException { Reason: ServiceBusFailureReason.MessageLockLost })
+                await AbandonQuietly(args);
+        }
+    }
+
+    private static async Task AbandonQuietly(ProcessMessageEventArgs args)
+    {
+        try
+        {
+            await args.AbandonMessageAsync(args.Message, cancellationToken: CancellationToken.None);
+        }
+        catch (ServiceBusException)
+        {
+            // The lock is gone already, which releases the message just the same
+        }
     }
 
     internal static TimeSpan GetRetryDelay(int deliveryCount, TimeSpan retryBackoffBase, TimeSpan retryBackoffMax)
@@ -199,5 +238,14 @@ internal sealed partial class ServiceBusTransport
         // Stopping a processor keeps its receiver open, so completions still in flight can land before it is disposed
         foreach (var pendingCompletions in _pendingCompletions.Values)
             await pendingCompletions.Drain(cancellationToken);
+    }
+
+    // Disposed before the processor factory it depends on, and covers a drain that StopListeners cut short
+    public async ValueTask DisposeAsync()
+    {
+        await processorFactory.StopAllProcessors(CancellationToken.None);
+
+        foreach (var pendingCompletions in _pendingCompletions.Values)
+            await pendingCompletions.Drain(CancellationToken.None);
     }
 }
