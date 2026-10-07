@@ -201,9 +201,9 @@ The transport creates the following topology:
 
 Like with Azure Service Bus, a message that fails to be handled is redelivered, with an optional back-off, until `MaxDeliveryCount` is reached. A message that can't be handled at all, e.g. because of an unsupported message type, is dead-lettered immediately. The reason is stored in the `DeadLetterReason` and `DeadLetterErrorDescription` headers of the dead-lettered message.
 
-> ⚠️ Deferred messages are not supported, publishing a message with a `DeferredUntil` in the future throws a `NotSupportedException`.
+Deferred messages are supported without the delayed message exchange plugin, by routing them through 28 delay levels (`whispr.delay-level-00` to `whispr.delay-level-27`), where level N delays a message for 2^N seconds. This allows deferring a message up to 8.5 years, with a precision of one second. A deferred message is never delivered early.
 
-☝️ Requires RabbitMQ 3.8 or newer for quorum queues. Queues created by Whispr are not converted, so delete an existing classic queue with the same name before switching to this transport.
+☝️ Requires RabbitMQ 3.10 or newer for quorum queues with a message TTL. Queues created by Whispr are not converted, so delete an existing classic queue with the same name before switching to this transport.
 
 ## 🪄 Filters
 

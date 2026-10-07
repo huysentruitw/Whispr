@@ -8,6 +8,8 @@ namespace Whispr.RabbitMq.Management;
 internal sealed class TopologyManager(ConnectionProvider connectionProvider)
 {
     private readonly ConcurrentDictionary<string, byte> _declaredExchanges = new();
+    private readonly ConcurrentDictionary<string, byte> _delayBoundExchanges = new();
+    private volatile bool _delayInfrastructureDeclared;
 
     public static string GetDeadLetterQueueName(string queueName) => $"{queueName}.dead-letter";
 
@@ -20,8 +22,38 @@ internal sealed class TopologyManager(ConnectionProvider connectionProvider)
         await DeclareExchange(channel, topicName, cancellationToken);
     }
 
-    public void ForgetExchange(string topicName)
-        => _declaredExchanges.TryRemove(topicName, out _);
+    /// <summary>
+    /// Declares the delay infrastructure, and binds the exchange of the topic to its delivery exchange.
+    /// </summary>
+    public async ValueTask DeclareDelayInfrastructureIfNotDeclared(IChannel channel, string topicName, CancellationToken cancellationToken = default)
+    {
+        if (!_delayInfrastructureDeclared)
+        {
+            await DelayInfrastructure.Declare(channel, cancellationToken);
+            _delayInfrastructureDeclared = true;
+        }
+
+        if (_delayBoundExchanges.ContainsKey(topicName))
+            return;
+
+        await channel.ExchangeBindAsync(
+            destination: topicName,
+            source: DelayInfrastructure.DeliveryExchangeName,
+            routingKey: DelayInfrastructure.GetDeliveryBindingKey(topicName),
+            cancellationToken: cancellationToken);
+
+        _delayBoundExchanges.TryAdd(topicName, 0);
+    }
+
+    /// <summary>
+    /// Forgets what was declared for the topic, so it is declared again, e.g. after it was deleted from the broker.
+    /// </summary>
+    public void ForgetTopic(string topicName)
+    {
+        _declaredExchanges.TryRemove(topicName, out _);
+        _delayBoundExchanges.TryRemove(topicName, out _);
+        _delayInfrastructureDeclared = false;
+    }
 
     public async ValueTask DeclareQueue(string queueName, string[] topicNames, CancellationToken cancellationToken = default)
     {

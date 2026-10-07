@@ -97,6 +97,30 @@ public sealed class RabbitMqTransportTests
     }
 
     [Fact]
+    public void Given_RoundtripFormattedHeader_When_GetDateTimeOffsetHeader_Then_ReturnsSameMoment()
+    {
+        // Arrange
+        var deferredUntil = new DateTimeOffset(2026, 10, 7, 12, 34, 56, 789, TimeSpan.FromHours(2));
+        var headers = new Dictionary<string, object?> { ["DeferredUntil"] = Encoding.UTF8.GetBytes(deferredUntil.ToString("O")) };
+
+        // Act
+        var value = RabbitMqTransport.GetDateTimeOffsetHeader(headers, "DeferredUntil");
+
+        // Assert
+        Assert.Equal(deferredUntil, value);
+    }
+
+    [Fact]
+    public void Given_MissingHeader_When_GetDateTimeOffsetHeader_Then_ReturnsNull()
+    {
+        // Act
+        var value = RabbitMqTransport.GetDateTimeOffsetHeader(new Dictionary<string, object?>(), "DeferredUntil");
+
+        // Assert
+        Assert.Null(value);
+    }
+
+    [Fact]
     public void Given_MissingHeader_When_GetStringHeader_Then_ReturnsNull()
     {
         // Act

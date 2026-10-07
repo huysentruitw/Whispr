@@ -11,5 +11,6 @@ internal sealed partial class RabbitMqTransport(
     ILogger<RabbitMqTransport> logger) : ITransport
 {
     private const string MessageTypeHeaderName = "MessageType";
+    private const string DeferredUntilHeaderName = "DeferredUntil";
     private const string ContentType = "application/json";
 }

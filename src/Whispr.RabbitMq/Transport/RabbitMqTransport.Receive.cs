@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Globalization;
 using System.Text;
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client.Events;
@@ -94,7 +95,7 @@ internal sealed partial class RabbitMqTransport
             MessageType = messageType,
             MessageId = args.BasicProperties.MessageId ?? string.Empty,
             CorrelationId = args.BasicProperties.CorrelationId,
-            DeferredUntil = null,
+            DeferredUntil = GetDateTimeOffsetHeader(headers, DeferredUntilHeaderName),
         };
 
         var deliveryCount = GetDeliveryCount(headers);
@@ -233,6 +234,13 @@ internal sealed partial class RabbitMqTransport
             string text => text,
             _ => value?.ToString(),
         };
+    }
+
+    internal static DateTimeOffset? GetDateTimeOffsetHeader(IDictionary<string, object?>? headers, string name)
+    {
+        return DateTimeOffset.TryParse(GetStringHeader(headers, name), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var value)
+            ? value
+            : null;
     }
 
     internal static int GetDeliveryCount(IDictionary<string, object?>? headers)

@@ -39,6 +39,26 @@ public sealed class MessageRoundtripTests(HostFixture hostFixture)
     }
 
     [Fact]
+    public async Task Given_MessageHandlerRegistered_When_DeferredMessagePublished_Then_MessageHandledAfterDeferral()
+    {
+        // Arrange
+        var birdId = Guid.NewGuid();
+        var message = new ChirpHeard(BirdId: birdId, TimeUtc: DateTime.UtcNow);
+        var deferredUntil = DateTimeOffset.UtcNow.AddSeconds(3);
+
+        // Act
+        await MimicAction(hostFixture, options => options.Defer(deferredUntil), message);
+
+        // Assert
+        var handledMessage = ChirpHandler.WaitForMessage<ChirpHeard>(m => m.BirdId == birdId, TimeSpan.FromSeconds(20));
+        Assert.NotNull(handledMessage);
+
+        // Allow for clock skew with the broker
+        var processedTime = ChirpHandler.GetMessageProcessedTime(birdId);
+        Assert.True(processedTime >= deferredUntil.UtcDateTime.AddSeconds(-1), $"Processed at {processedTime:O}, deferred until {deferredUntil:O}");
+    }
+
+    [Fact]
     public async Task Given_MessageHandlerThrowingException_When_MessagePublished_Then_HandlerRetried()
     {
         // Arrange
@@ -56,7 +76,11 @@ public sealed class MessageRoundtripTests(HostFixture hostFixture)
         Assert.NotNull(handledMessage);
     }
 
-    private static async ValueTask MimicAction<TMessage>(IServiceProvider serviceProvider, params TMessage[] messages)
+    private static ValueTask MimicAction<TMessage>(IServiceProvider serviceProvider, params TMessage[] messages)
+        where TMessage : class
+        => MimicAction(serviceProvider, configure: null, messages);
+
+    private static async ValueTask MimicAction<TMessage>(IServiceProvider serviceProvider, Action<PublishOptions>? configure, params TMessage[] messages)
         where TMessage : class
     {
         using var serviceScope = serviceProvider.CreateScope();
@@ -66,7 +90,7 @@ public sealed class MessageRoundtripTests(HostFixture hostFixture)
         dbContext.Set<Product>().Add(new Product { Id = Guid.NewGuid(), Name = "Test", Price = 1.23m });
 
         foreach (var message in messages)
-            await messagePublisher.Publish(message, cancellationToken: TestContext.Current.CancellationToken);
+            await messagePublisher.Publish(message, configure, TestContext.Current.CancellationToken);
 
         await dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
