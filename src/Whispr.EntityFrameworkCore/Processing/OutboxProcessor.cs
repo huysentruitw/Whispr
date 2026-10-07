@@ -1,5 +1,4 @@
-﻿using System.Numerics;
-using Microsoft.EntityFrameworkCore.Metadata;
+﻿using Whispr.EntityFrameworkCore.Processing.SqlStatementBuilders;
 
 namespace Whispr.EntityFrameworkCore.Processing;
 
@@ -13,9 +12,6 @@ internal sealed class OutboxProcessor<TDbContext>(
     ILogger<OutboxProcessor<TDbContext>> logger) : BackgroundService
     where TDbContext : DbContext
 {
-    // A power of two below SQL Server's 2,100 parameters per statement, whatever MaxMessageBatchSize is set to
-    private const int MaxIdsPerStatement = 1024;
-
     private readonly TimeSpan _queryDelay = options.QueryDelay;
     private readonly TimeSpan _idleQueryDelay = options.IdleQueryDelay;
     private readonly int _maxMessageBatchSize = options.MaxMessageBatchSize;
@@ -23,8 +19,7 @@ internal sealed class OutboxProcessor<TDbContext>(
     private readonly int? _maxSendAttempts = options.MaxSendAttempts;
     private readonly TimeSpan _retryBackoffBase = options.RetryBackoffBase;
     private readonly TimeSpan _retryBackoffMax = options.RetryBackoffMax;
-    private string? _sqlStatement;
-    private MarkAsProcessedTarget? _markAsProcessedTarget;
+    private ISqlStatementsBuilder? _sqlStatementsBuilder;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -53,22 +48,23 @@ internal sealed class OutboxProcessor<TDbContext>(
         await using var scope = serviceScopeFactory.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<TDbContext>();
 
-        _sqlStatement ??= GetOutboxSqlStatement<OutboxMessage>(dbContext, maxMessageBatchSize: _maxMessageBatchSize);
+        _sqlStatementsBuilder ??= MsSqlStatementsBuilder.Create(dbContext.Model);
 
         // The execution strategy is required when the user configured retry on failure on the DbContext,
         // as user-initiated transactions are not allowed otherwise.
         var executionStrategy = dbContext.Database.CreateExecutionStrategy();
         return await executionStrategy.ExecuteAsync(
-            ct => SendOutboxMessages(dbContext, _sqlStatement, ct).AsTask(),
+            ct => SendOutboxMessages(dbContext, _sqlStatementsBuilder, ct).AsTask(),
             cancellationToken);
     }
 
-    private async ValueTask<bool> SendOutboxMessages(TDbContext dbContext, string sqlStatement, CancellationToken cancellationToken)
+    private async ValueTask<bool> SendOutboxMessages(TDbContext dbContext, ISqlStatementsBuilder statementsBuilder, CancellationToken cancellationToken)
     {
         await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
 
+        var selectBatch = statementsBuilder.BuildSelectBatch(_maxMessageBatchSize, DateTimeOffset.UtcNow);
         var outboxMessages = await dbContext.Set<OutboxMessage>()
-            .FromSqlRaw(sqlStatement, DateTimeOffset.UtcNow)
+            .FromSqlRaw(selectBatch.Sql, selectBatch.Parameters)
             .AsNoTracking()
             .ToArrayAsync(cancellationToken);
 
@@ -88,28 +84,21 @@ internal sealed class OutboxProcessor<TDbContext>(
             await RegisterFailedAttempt(dbContext, failedResult.Message, failedResult.Error!);
 
         if (processedMessageIds.Length > 0)
-            await MarkAsProcessed(dbContext, processedMessageIds);
+        {
+            // Without retention, processed messages are deleted right away instead of by the cleanup service
+            var statements = _messageRetentionEnabled
+                ? statementsBuilder.BuildMarkAsProcessed(processedMessageIds, DateTimeOffset.UtcNow)
+                : statementsBuilder.BuildDelete(processedMessageIds);
+
+            foreach (var statement in statements)
+                await dbContext.Database.ExecuteSqlRawAsync(statement.Sql, statement.Parameters, CancellationToken.None);
+        }
 
         await transaction.CommitAsync(CancellationToken.None);
 
         // Also query the next batch right away when a full batch failed, as the failed messages are rescheduled
         // and other messages can be waiting behind them
         return processedMessageIds.Length > 0 || outboxMessages.Length >= _maxMessageBatchSize;
-    }
-
-    private async ValueTask MarkAsProcessed(TDbContext dbContext, long[] processedMessageIds)
-    {
-        _markAsProcessedTarget ??= GetMarkAsProcessedTarget(dbContext);
-        var processedAtUtc = DateTimeOffset.UtcNow;
-
-        foreach (var ids in processedMessageIds.Chunk(MaxIdsPerStatement))
-        {
-            // Padded with the last id to a power of two, so a handful of cached plans covers every batch size
-            var paddedIds = ids.Concat(Enumerable.Repeat(ids[^1], (int)BitOperations.RoundUpToPowerOf2((uint)ids.Length) - ids.Length));
-            object[] parameters = _messageRetentionEnabled ? [processedAtUtc, .. paddedIds.Cast<object>()] : [.. paddedIds.Cast<object>()];
-            var sqlStatement = GetMarkAsProcessedSqlStatement(_markAsProcessedTarget, parameters.Length, _messageRetentionEnabled);
-            await dbContext.Database.ExecuteSqlRawAsync(sqlStatement, parameters, CancellationToken.None);
-        }
     }
 
     private async Task<SendResult> TrySendMessage(OutboxMessage outboxMessage)
@@ -167,60 +156,6 @@ internal sealed class OutboxProcessor<TDbContext>(
     private static string Truncate(string value, int maxLength)
         => value.Length > maxLength ? value[..maxLength] : value;
 
-    private static string GetOutboxSqlStatement<TEntity>(DbContext context, int maxMessageBatchSize)
-    {
-        var tableName = GetTableName<TEntity>(context);
-
-        // {0} is the current UTC time, passed as parameter so the application clock is used for both scheduling and querying
-        return $$"""
-            SELECT TOP {{maxMessageBatchSize}} * FROM {{tableName}} WITH (UPDLOCK, ROWLOCK, READPAST)
-            WHERE [ProcessedAtUtc] IS NULL AND [ParkedAtUtc] IS NULL AND ([NextAttemptAtUtc] IS NULL OR [NextAttemptAtUtc] <= {0})
-            ORDER BY [CreatedAtUtc]
-            """;
-    }
-
-    private static string GetMarkAsProcessedSqlStatement(MarkAsProcessedTarget target, int parameterCount, bool messageRetentionEnabled)
-    {
-        var firstIdIndex = messageRetentionEnabled ? 1 : 0;
-        var idList = string.Join(", ", Enumerable.Range(firstIdIndex, parameterCount - firstIdIndex).Select(i => $"{{{i}}}"));
-
-        // FORCESEEK: a scan (chosen on a small outbox) deadlocks on other processors' batches, and the loser re-sends its batch
-        return messageRetentionEnabled
-            ? $"UPDATE o SET [{target.ProcessedAtUtcColumn}] = {{0}} FROM {target.TableName} AS o WITH (FORCESEEK) WHERE o.[{target.IdColumn}] IN ({idList})"
-            : $"DELETE o FROM {target.TableName} AS o WITH (FORCESEEK) WHERE o.[{target.IdColumn}] IN ({idList})";
-    }
-
-    private static MarkAsProcessedTarget GetMarkAsProcessedTarget(DbContext context)
-    {
-        var entityType = context.Model.FindEntityType(typeof(OutboxMessage))
-            ?? throw new InvalidOperationException($"Entity type not found: {nameof(OutboxMessage)}");
-
-        var storeObject = StoreObjectIdentifier.Table(entityType.GetTableName()!, entityType.GetSchema());
-
-        return new MarkAsProcessedTarget(
-            TableName: GetTableName<OutboxMessage>(context),
-            IdColumn: GetColumnName(nameof(OutboxMessage.Id)),
-            ProcessedAtUtcColumn: GetColumnName(nameof(OutboxMessage.ProcessedAtUtc)));
-
-        string GetColumnName(string propertyName)
-            => entityType.FindProperty(propertyName)?.GetColumnName(storeObject)
-                ?? throw new InvalidOperationException($"Column not found for property: {nameof(OutboxMessage)}.{propertyName}");
-    }
-
-    private static string GetTableName<TEntity>(DbContext context)
-    {
-        var entityType = context.Model.FindEntityType(typeof(TEntity))
-            ?? throw new InvalidOperationException($"Entity type not found: {typeof(TEntity).Name}");
-
-        var schema = entityType.GetSchema();
-        var tableName = entityType.GetTableName();
-
-        if (string.IsNullOrWhiteSpace(tableName))
-            throw new InvalidOperationException($"Table name not found for entity type: {typeof(TEntity).Name}");
-
-        return schema is null ? $"[{tableName}]" : $"[{schema}].[{tableName}]";
-    }
-
     private static SerializedEnvelope CreateSerializedEnvelope(OutboxMessage outboxMessage)
     {
         return new SerializedEnvelope
@@ -234,6 +169,4 @@ internal sealed class OutboxProcessor<TDbContext>(
     }
 
     private sealed record SendResult(OutboxMessage Message, Exception? Error);
-
-    private sealed record MarkAsProcessedTarget(string TableName, string IdColumn, string ProcessedAtUtcColumn);
 }

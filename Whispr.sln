@@ -34,6 +34,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Whispr.RabbitMq", "src\Whis
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Whispr.RabbitMq.Tests", "tests\Whispr.RabbitMq.Tests\Whispr.RabbitMq.Tests.csproj", "{E1889F1A-2C6F-4E6C-9DB9-97559D58F414}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Whispr.EntityFrameworkCore.Tests", "tests\Whispr.EntityFrameworkCore.Tests\Whispr.EntityFrameworkCore.Tests.csproj", "{8F3C2B71-5E4A-4D9B-A6C1-3E7F90D2B845}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -75,6 +77,10 @@ Global
 		{E1889F1A-2C6F-4E6C-9DB9-97559D58F414}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E1889F1A-2C6F-4E6C-9DB9-97559D58F414}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E1889F1A-2C6F-4E6C-9DB9-97559D58F414}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8F3C2B71-5E4A-4D9B-A6C1-3E7F90D2B845}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8F3C2B71-5E4A-4D9B-A6C1-3E7F90D2B845}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8F3C2B71-5E4A-4D9B-A6C1-3E7F90D2B845}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8F3C2B71-5E4A-4D9B-A6C1-3E7F90D2B845}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{3E3E668E-726B-4556-A367-2C501C5C6290} = {E5AADD71-726D-4662-812A-BC0BA0C468F8}
@@ -85,5 +91,6 @@ Global
 		{BB392007-4E55-4896-BDD5-7B6B339B2D83} = {42FA3AE0-23DA-4F6C-B262-C9F621E55669}
 		{DD72A4D6-2F74-4EB4-82BF-C0321D57C7C2} = {42FA3AE0-23DA-4F6C-B262-C9F621E55669}
 		{E1889F1A-2C6F-4E6C-9DB9-97559D58F414} = {42FA3AE0-23DA-4F6C-B262-C9F621E55669}
+		{8F3C2B71-5E4A-4D9B-A6C1-3E7F90D2B845} = {18DCA85D-9B10-41F5-BBDD-F579B8B126D6}
 	EndGlobalSection
 EndGlobal

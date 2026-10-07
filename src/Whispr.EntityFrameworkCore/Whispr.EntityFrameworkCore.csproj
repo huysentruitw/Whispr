@@ -27,4 +27,8 @@
     <ProjectReference Include="..\Whispr\Whispr.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Whispr.EntityFrameworkCore.Tests" />
+  </ItemGroup>
+
 </Project>
