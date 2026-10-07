@@ -6,6 +6,10 @@
 
 - New RabbitMQ transport in the `Whispr.RabbitMq` package (`AddRabbitMqTransport`), e.g. for integration tests in a container setup.
 
+### Fixes
+
+- Outbox processors on several instances that share one outbox table no longer deadlock while marking messages as processed, which made the losing instance send its whole batch again.
+
 ## 4.1.0
 
 ### Features
