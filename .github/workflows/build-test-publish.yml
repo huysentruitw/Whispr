@@ -59,6 +59,11 @@ jobs:
         AzureServiceBus__ConnectionString: ${{ secrets.AZURESERVICEBUS__CONNECTIONSTRING }}
         CI: true
       run: dotnet test --configuration Release --no-restore --no-build --verbosity normal
+    - name: Integration test (RabbitMQ)
+      env:
+        Transport: RabbitMq
+        CI: true
+      run: dotnet test tests/Whispr.IntegrationTests --configuration Release --no-restore --no-build --verbosity normal
     - name: NuGet login (OIDC)
       id: nuget-login
       if: (startsWith(github.ref, 'refs/tags/') || startsWith(github.ref, 'refs/heads/release/')) && github.repository_owner == 'huysentruitw'

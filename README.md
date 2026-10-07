@@ -176,6 +176,35 @@ services
 
 ☝️ A message with a type that isn't handled by the receiving handler is dead-lettered immediately with reason `Unsupported message type`. This typically happens when a handler no longer handles a message type, while its subscription on that topic still exists. Delete the stale subscription to stop these messages from arriving.
 
+### RabbitMQ
+
+The RabbitMQ transport is implemented using the `RabbitMQ.Client` package, and is a good fit for integration tests in a container setup. The transport can be configured using the `AddRabbitMqTransport` method:
+
+```csharp
+services
+    .AddWhispr()
+        .AddRabbitMqTransport(options =>
+        {
+            options.ConnectionString = "amqp://guest:guest@localhost:5672/";
+            options.QueueConcurrencyLimit = 4;
+            options.MaxDeliveryCount = 5;
+            options.RetryBackoffBase = TimeSpan.FromSeconds(1);
+            options.RetryBackoffMax = TimeSpan.FromSeconds(30);
+        });
+```
+
+The transport creates the following topology:
+
+- A durable fanout exchange per topic.
+- A durable quorum queue per message handler, bound to the exchanges of the topics it handles.
+- A dead-letter queue per message handler queue, named `<queue name>.dead-letter`.
+
+Like with Azure Service Bus, a message that fails to be handled is redelivered, with an optional back-off, until `MaxDeliveryCount` is reached. A message that can't be handled at all, e.g. because of an unsupported message type, is dead-lettered immediately. The reason is stored in the `DeadLetterReason` and `DeadLetterErrorDescription` headers of the dead-lettered message.
+
+> ⚠️ Deferred messages are not supported, publishing a message with a `DeferredUntil` in the future throws a `NotSupportedException`.
+
+☝️ Requires RabbitMQ 3.8 or newer for quorum queues. Queues created by Whispr are not converted, so delete an existing classic queue with the same name before switching to this transport.
+
 ## 🪄 Filters
 
 ### Pipeline
