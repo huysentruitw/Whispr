@@ -1,10 +1,15 @@
 # Release notes
 
-## 4.1.0
+## 4.2.0
 
 ### Features
 
 - New RabbitMQ transport in the `Whispr.RabbitMq` package (`AddRabbitMqTransport`), e.g. for integration tests in a container setup.
+
+## 4.1.0
+
+### Features
+
 - Messages that fail to deserialize are dead-lettered immediately with reason `Deserialization failed`, instead of being redelivered until the max delivery count.
 
 ### Fixes
