@@ -30,6 +30,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1"/>
     <PackageReference Include="Testcontainers.MsSql" Version="4.15.0" />
+    <PackageReference Include="Testcontainers.RabbitMq" Version="4.15.0" />
     <PackageReference Include="xunit.v3" Version="3.2.1"/>
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" />
   </ItemGroup>
@@ -37,6 +38,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Whispr.AzureServiceBus\Whispr.AzureServiceBus.csproj" />
     <ProjectReference Include="..\..\src\Whispr.EntityFrameworkCore\Whispr.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="..\..\src\Whispr.RabbitMq\Whispr.RabbitMq.csproj" />
   </ItemGroup>
 
   <ItemGroup>

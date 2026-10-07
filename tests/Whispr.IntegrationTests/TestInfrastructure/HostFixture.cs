@@ -9,11 +9,7 @@ public sealed class HostFixture : IAsyncLifetime, IServiceProvider
 
     public async ValueTask InitializeAsync()
     {
-        var configuration = new ConfigurationBuilder()
-            .AddJsonFile("appsettings.json")
-            .AddUserSecrets<AssemblyMarker>()
-            .AddEnvironmentVariables()
-            .Build();
+        var configuration = TestConfiguration.Configuration;
 
         SetupActivityListener();
 
@@ -29,9 +25,22 @@ public sealed class HostFixture : IAsyncLifetime, IServiceProvider
                                 options.UseSqlServer(SqlServerFixture.ConnectionString);
                             });
 
-                    services
-                        .AddWhispr()
-                        .AddAzureServiceBusTransport(
+                    var builder = services.AddWhispr();
+
+                    if (TestConfiguration.UseRabbitMq)
+                    {
+                        builder.AddRabbitMqTransport(
+                            options =>
+                            {
+                                options.ConnectionString = RabbitMqFixture.ConnectionString;
+                                options.QueueConcurrencyLimit = Environment.ProcessorCount;
+                                options.RetryBackoffBase = TimeSpan.FromMilliseconds(100);
+                                options.RetryBackoffMax = TimeSpan.FromSeconds(1);
+                            });
+                    }
+                    else
+                    {
+                        builder.AddAzureServiceBusTransport(
                             options =>
                             {
                                 options.ConnectionString = configuration.GetValue<string>("AzureServiceBus:ConnectionString");
@@ -39,7 +48,10 @@ public sealed class HostFixture : IAsyncLifetime, IServiceProvider
                                 options.QueueConcurrencyLimit = Environment.ProcessorCount;
                                 options.RetryBackoffBase = TimeSpan.FromMilliseconds(100);
                                 options.RetryBackoffMax = TimeSpan.FromSeconds(1);
-                            })
+                            });
+                    }
+
+                    builder
                         .AddTopicNamingConvention<TopicNamingConvention>()
                         .AddQueueNamingConvention<QueueNamingConvention>()
                         .AddSubscriptionNamingConvention<SubscriptionNamingConvention>()

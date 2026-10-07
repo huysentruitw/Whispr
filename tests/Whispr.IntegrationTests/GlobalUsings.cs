@@ -4,6 +4,7 @@ global using Microsoft.Extensions.DependencyInjection;
 
 global using Whispr.AzureServiceBus;
 global using Whispr.EntityFrameworkCore;
+global using Whispr.RabbitMq;
 global using Whispr.IntegrationTests.TestInfrastructure.Conventions;
 global using Whispr.IntegrationTests.TestInfrastructure.Data;
 global using Whispr.IntegrationTests.TestInfrastructure.Filters;
