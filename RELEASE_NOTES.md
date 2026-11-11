@@ -1,5 +1,15 @@
 # Release notes
 
+## Unreleased
+
+### Features
+
+- PostgreSQL support for the EF Core outbox. Set `OutboxOptions.SqlDialect` to `SqlDialect.PostgreSql` and pass the same dialect to `AddOutboxMessageEntity`. The default stays `SqlDialect.MsSql`.
+
+### Fixes
+
+- The filter of the pending messages index uses the column names as mapped in the model, e.g. by a naming convention, instead of the default names.
+
 ## 4.2.0
 
 ### Features

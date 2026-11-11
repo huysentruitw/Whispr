@@ -11,14 +11,16 @@ public static class ModelBuilderExtensions
     /// <param name="modelBuilder">The <see cref="ModelBuilder"/>.</param>
     /// <param name="tableName">The table name of the outbox message entity.</param>
     /// <param name="schemaName">The schema name of the outbox message entity.</param>
+    /// <param name="sqlDialect">The SQL dialect of the database, used for the filter of the pending messages index. Must match <see cref="OutboxOptions.SqlDialect"/>.</param>
     /// <returns>The <see cref="ModelBuilder"/>.</returns>
     public static ModelBuilder AddOutboxMessageEntity(
         this ModelBuilder modelBuilder,
         string tableName = "OutboxMessage",
-        string? schemaName = null)
+        string? schemaName = null,
+        SqlDialect sqlDialect = SqlDialect.MsSql)
     {
         return modelBuilder
             .Entity<OutboxMessage>(entity => entity.ToTable(tableName, schemaName))
-            .ApplyConfiguration(new OutboxMessageEntityTypeConfiguration());
+            .ApplyConfiguration(new OutboxMessageEntityTypeConfiguration(sqlDialect));
     }
 }

@@ -8,7 +8,7 @@ public sealed class DataContext(DbContextOptions<DataContext> options) : DbConte
     {
         modelBuilder
             .ApplyConfigurationsFromAssembly(typeof(DataContext).Assembly)
-            .AddOutboxMessageEntity(schemaName: "Application");
+            .AddOutboxMessageEntity(schemaName: "Application", sqlDialect: TestConfiguration.SqlDialect);
     }
 }
 

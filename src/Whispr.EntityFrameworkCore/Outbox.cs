@@ -14,7 +14,7 @@ internal sealed class Outbox<TDbContext>(TDbContext dbContext, OutboxProcessorTr
             MessageId = envelope.MessageId,
             CorrelationId = envelope.CorrelationId,
             TraceParent = traceParent,
-            DeferredUntil = envelope.DeferredUntil,
+            DeferredUntil = envelope.DeferredUntil?.ToUniversalTime(),
             DestinationTopicName = topicName,
             CreatedAtUtc = DateTimeOffset.UtcNow,
         };

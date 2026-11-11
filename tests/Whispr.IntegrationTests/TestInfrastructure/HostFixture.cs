@@ -19,11 +19,7 @@ public sealed class HostFixture : IAsyncLifetime, IServiceProvider
                 services =>
                 {
                     services
-                        .AddDbContext<DataContext>(
-                            options =>
-                            {
-                                options.UseSqlServer(SqlServerFixture.ConnectionString);
-                            });
+                        .AddDbContext<DataContext>(options => options.UseTestDatabase());
 
                     var builder = services.AddWhispr();
 
@@ -62,6 +58,7 @@ public sealed class HostFixture : IAsyncLifetime, IServiceProvider
                         .AddOutbox<DataContext>(
                             options =>
                             {
+                                options.SqlDialect = TestConfiguration.SqlDialect;
                                 options.MaxSendAttempts = 3;
                                 options.RetryBackoffBase = TimeSpan.FromMilliseconds(100);
                                 options.RetryBackoffMax = TimeSpan.FromMilliseconds(500);

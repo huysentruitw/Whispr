@@ -6,6 +6,12 @@
 public sealed record OutboxOptions
 {
     /// <summary>
+    /// The SQL dialect used by the outbox processor to query the outbox table. Defaults to <see cref="SqlDialect.MsSql"/>.
+    /// </summary>
+    /// <remarks>Pass the same dialect to <see cref="ModelBuilderExtensions.AddOutboxMessageEntity"/>.</remarks>
+    public SqlDialect SqlDialect { get; set; } = SqlDialect.MsSql;
+
+    /// <summary>
     /// The delay between each query to the outbox table when there are more messages to process.
     /// </summary>
     public TimeSpan QueryDelay { get; set; } = TimeSpan.FromMilliseconds(10);

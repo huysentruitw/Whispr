@@ -240,9 +240,9 @@ The transactional outbox pattern is implemented using EF Core and consists of:
 
 There is also a trigger mechanism that forces the outbox to be processed as soon as possible. This is useful when you want to ensure that messages are sent immediately after the transaction is committed.
 
-> ⚠️ The query used by the outbox background service is currently implemented for MSSQL Server only, other databases are not supported.
+The outbox supports Microsoft SQL Server (default) and PostgreSQL, selected with the `SqlDialect` option. Other databases are not supported.
 
-Enabling the outbox is a two step process:
+Enabling the outbox is a three step process:
 
 1. Add and configure the outbox using the `AddOutbox` extension method:
 
@@ -251,6 +251,7 @@ services
     .AddWhispr()
         .AddOutbox<MyDbContext>(options =>
         {
+            options.SqlDialect = SqlDialect.MsSql; // Or SqlDialect.PostgreSql
             options.IdleQueryDelay = TimeSpan.FromSeconds(10);
             options.MaxMessageBatchSize = 100;
             options.EnableMessageRetention = true;
@@ -279,6 +280,12 @@ public class MyDbContext : DbContext
 }
 ```
 
+For PostgreSQL, pass the same dialect, which is used for the filtered index on pending messages:
+
+```csharp
+modelBuilder.AddOutboxMessageEntity(schemaName: "application", sqlDialect: SqlDialect.PostgreSql);
+```
+
 3. Add an EF Core migration to create the outbox table.
 
 ### Retries and parked messages
@@ -298,6 +305,8 @@ UPDATE [Application].[OutboxMessage]
 SET [ParkedAtUtc] = NULL, [AttemptCount] = 0, [NextAttemptAtUtc] = NULL
 WHERE [ParkedAtUtc] IS NOT NULL;
 ```
+
+On PostgreSQL, quote the names with double quotes instead, e.g. `"Application"."OutboxMessage"`.
 
 ### Pipeline with outbox
 
