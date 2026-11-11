@@ -79,14 +79,14 @@ public sealed class OutboxConcurrencyTests
             var host = Host.CreateDefaultBuilder()
                 .ConfigureServices(services =>
                 {
-                    services.AddDbContext<TContext>(options => options.UseSqlServer(SqlServerFixture.ConnectionString));
+                    services.AddDbContext<TContext>(options => options.UseTestDatabase());
                     services.AddKeyedSingleton<ITransport>(WhisprDefaults.DefaultBusName, transport);
 
                     services.AddWhispr()
                         .AddTopicNamingConvention<TopicNamingConvention>()
                         .AddQueueNamingConvention<QueueNamingConvention>()
                         .AddSubscriptionNamingConvention<SubscriptionNamingConvention>()
-                        .AddOutbox<TContext>();
+                        .AddOutbox<TContext>(options => options.SqlDialect = TestConfiguration.SqlDialect);
                 })
                 .Build();
 
@@ -156,7 +156,9 @@ public sealed class OutboxConcurrencyTests
         where TContext : DbContext
     {
         await using var dbContext = CreateDbContext<TContext>();
-        var dropTable = $"DROP TABLE IF EXISTS [{dbContext.Model.FindEntityType(typeof(OutboxMessage))!.GetTableName()}]";
+        var tableName = dbContext.Model.FindEntityType(typeof(OutboxMessage))!.GetTableName()!;
+        var quotedTableName = TestConfiguration.SqlDialect == SqlDialect.PostgreSql ? $"\"{tableName}\"" : $"[{tableName}]";
+        var dropTable = $"DROP TABLE IF EXISTS {quotedTableName}";
         await dbContext.Database.ExecuteSqlRawAsync(dropTable, TestContext.Current.CancellationToken);
         await dbContext.GetService<IRelationalDatabaseCreator>().CreateTablesAsync(TestContext.Current.CancellationToken);
     }
@@ -164,21 +166,21 @@ public sealed class OutboxConcurrencyTests
     private static TContext CreateDbContext<TContext>()
         where TContext : DbContext
     {
-        var options = new DbContextOptionsBuilder<TContext>().UseSqlServer(SqlServerFixture.ConnectionString).Options;
+        var options = new DbContextOptionsBuilder<TContext>().UseTestDatabase().Options;
         return (TContext)Activator.CreateInstance(typeof(TContext), options)!;
     }
 
     private sealed class ConcurrentOutboxContext(DbContextOptions<ConcurrentOutboxContext> options) : DbContext(options)
     {
         protected override void OnModelCreating(ModelBuilder modelBuilder)
-            => modelBuilder.AddOutboxMessageEntity(tableName: "ConcurrentOutboxMessage");
+            => modelBuilder.AddOutboxMessageEntity(tableName: "ConcurrentOutboxMessage", sqlDialect: TestConfiguration.SqlDialect);
     }
 
     private sealed class RenamedKeyOutboxContext(DbContextOptions<RenamedKeyOutboxContext> options) : DbContext(options)
     {
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.AddOutboxMessageEntity(tableName: "RenamedKeyOutboxMessage");
+            modelBuilder.AddOutboxMessageEntity(tableName: "RenamedKeyOutboxMessage", sqlDialect: TestConfiguration.SqlDialect);
             modelBuilder.Entity<OutboxMessage>().Property(x => x.Id).HasColumnName("OutboxMessageId");
         }
     }

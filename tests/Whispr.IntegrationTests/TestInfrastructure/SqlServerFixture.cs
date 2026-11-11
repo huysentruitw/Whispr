@@ -19,6 +19,9 @@ public sealed class SqlServerFixture : IAsyncLifetime
 
     public async ValueTask InitializeAsync()
     {
+        if (TestConfiguration.SqlDialect != SqlDialect.MsSql)
+            return;
+
         if (!CiDetector.IsCi() && IsLocalSqlServer())
         {
             ConnectionString = "Server=localhost,1433;Database=whispr-test;Integrated Security=True;Trusted_Connection=True;TrustServerCertificate=True;";

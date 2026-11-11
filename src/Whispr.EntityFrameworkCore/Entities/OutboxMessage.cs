@@ -81,7 +81,7 @@ public sealed record OutboxMessage
     public string? LastError { get; set; }
 }
 
-internal sealed class OutboxMessageEntityTypeConfiguration : IEntityTypeConfiguration<OutboxMessage>
+internal sealed class OutboxMessageEntityTypeConfiguration(SqlDialect sqlDialect) : IEntityTypeConfiguration<OutboxMessage>
 {
     public void Configure(EntityTypeBuilder<OutboxMessage> builder)
     {
@@ -133,6 +133,10 @@ internal sealed class OutboxMessageEntityTypeConfiguration : IEntityTypeConfigur
 
         // Only contains pending messages, so it stays small regardless of the number of processed or parked messages
         builder.HasIndex(x => x.CreatedAtUtc)
-            .HasFilter("[ProcessedAtUtc] IS NULL AND [ParkedAtUtc] IS NULL");
+            .HasFilter($"{GetQuotedColumnName(builder, nameof(OutboxMessage.ProcessedAtUtc))} IS NULL AND {GetQuotedColumnName(builder, nameof(OutboxMessage.ParkedAtUtc))} IS NULL");
     }
+
+    // Column names as mapped so far, e.g. by a naming convention
+    private string GetQuotedColumnName(EntityTypeBuilder<OutboxMessage> builder, string propertyName)
+        => sqlDialect.QuoteIdentifier(builder.Metadata.FindProperty(propertyName)!.GetColumnName());
 }

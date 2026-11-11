@@ -1,7 +1,7 @@
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Whispr.EntityFrameworkCore.Entities;
 using Whispr.EntityFrameworkCore.Processing.SqlStatementBuilders;
+using Whispr.EntityFrameworkCore.Tests.TestInfrastructure;
 
 namespace Whispr.EntityFrameworkCore.Tests.Processing.SqlStatementBuilders;
 
@@ -166,26 +166,5 @@ public sealed class MsSqlStatementsBuilderTests
     }
 
     private static IModel BuildModel(Action<ModelBuilder>? configure = null)
-    {
-        var options = new DbContextOptionsBuilder<TestDbContext>()
-            .UseSqlServer("Server=unused")
-            .ReplaceService<IModelCacheKeyFactory, UncachedModelCacheKeyFactory>()
-            .Options;
-
-        using var context = new TestDbContext(options, configure ?? (modelBuilder => modelBuilder.AddOutboxMessageEntity()));
-        return context.Model;
-    }
-
-    private sealed class TestDbContext(DbContextOptions<TestDbContext> options, Action<ModelBuilder> configure) : DbContext(options)
-    {
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
-            => configure(modelBuilder);
-    }
-
-    // Each test builds its own model
-    private sealed class UncachedModelCacheKeyFactory : IModelCacheKeyFactory
-    {
-        public object Create(DbContext context, bool designTime)
-            => new object();
-    }
+        => TestModel.Build(SqlDialect.MsSql, configure);
 }

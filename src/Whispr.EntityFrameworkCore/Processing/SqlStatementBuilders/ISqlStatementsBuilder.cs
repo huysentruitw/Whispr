@@ -24,7 +24,21 @@ internal interface ISqlStatementsBuilder
     IEnumerable<SqlStatement> BuildDelete(long[] ids);
 }
 
+internal static class SqlStatementsBuilder
+{
+    /// <summary>
+    /// Creates the statements builder for the given SQL dialect.
+    /// </summary>
+    public static ISqlStatementsBuilder Create(SqlDialect sqlDialect, Microsoft.EntityFrameworkCore.Metadata.IModel model)
+        => sqlDialect switch
+        {
+            SqlDialect.MsSql => MsSqlStatementsBuilder.Create(model),
+            SqlDialect.PostgreSql => PostgreSqlStatementsBuilder.Create(model),
+            _ => throw new NotSupportedException($"SQL dialect not supported: {sqlDialect}"),
+        };
+}
+
 /// <summary>
-/// A SQL statement with its positional parameters. 
+/// A SQL statement with its positional parameters.
 /// </summary>
 internal sealed record SqlStatement(string Sql, object[] Parameters);

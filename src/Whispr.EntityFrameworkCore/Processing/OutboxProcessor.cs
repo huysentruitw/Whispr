@@ -19,6 +19,7 @@ internal sealed class OutboxProcessor<TDbContext>(
     private readonly int? _maxSendAttempts = options.MaxSendAttempts;
     private readonly TimeSpan _retryBackoffBase = options.RetryBackoffBase;
     private readonly TimeSpan _retryBackoffMax = options.RetryBackoffMax;
+    private readonly SqlDialect _sqlDialect = options.SqlDialect;
     private ISqlStatementsBuilder? _sqlStatementsBuilder;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -48,7 +49,7 @@ internal sealed class OutboxProcessor<TDbContext>(
         await using var scope = serviceScopeFactory.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<TDbContext>();
 
-        _sqlStatementsBuilder ??= MsSqlStatementsBuilder.Create(dbContext.Model);
+        _sqlStatementsBuilder ??= SqlStatementsBuilder.Create(_sqlDialect, dbContext.Model);
 
         // The execution strategy is required when the user configured retry on failure on the DbContext,
         // as user-initiated transactions are not allowed otherwise.
